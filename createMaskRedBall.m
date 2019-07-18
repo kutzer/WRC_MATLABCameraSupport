@@ -52,6 +52,12 @@ polyBW = applyPolygons(J,polyBW);
 % Combine both masks
 BW = sliderBW & polyBW;
 
+% Fill holes in binary
+BW = imfill(BW,'holes');
+
+% Remove noise
+BW = bwareaopen(BW,500);
+
 % Initialize output masked image based on input image.
 maskedRGBImage = RGB;
 
