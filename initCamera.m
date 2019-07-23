@@ -1,5 +1,6 @@
 function [cam,prv] = initCamera
-% INITCAMERA initialize a camera object and opens a preview.
+% INITCAMERA initializes a video input object and, if applicable, opens a 
+% preview.
 %
 %   cam = INITCAMERA returns the camera object. This is required for using
 %   getsnapshot.m:
@@ -11,7 +12,8 @@ function [cam,prv] = initCamera
 %       -> im = get(prv,'CData');
 %
 %   NOTE: This requires an installed version of the "Image Acquisition 
-%       Toolbox Support Package for OS Generic Video Interface" package
+%       Toolbox" and the "Image Acquisition Toolbox Support Package for OS 
+%       Generic Video Interface"
 %       >> supportPackageInstaller
 %           -> select "Install from Internet"
 %           -> select “OS Generic Video Interface”
@@ -48,7 +50,9 @@ if ~goodAdaptor
     error('initCam:BadAdaptor',...
         ['The "winvideo" adaptor is not detected.\n',...
         ' -> Run "supportPackageInstaller"\n',...
-        ' -> Select and install "OS Generic Video Interface".\n'])
+        ' -> Select and install "OS Generic Video Interface".\n',...
+        '\n',...
+        '    NOTE: This requires the Image Acquisition Toolbox\n'])
 end
 
 %% Check for cameras
@@ -72,8 +76,9 @@ else
     camIdx = 1;
 end
 
-%% Check for existing devices
-% out1 = imaqfind('Type', 'videoinput')
+%% Check if the selected device is already initialized and in use
+% NOTE: This recovers a previously initialized video input object with an
+%       ID matching the ID selected by the user (or set as the default)
 vids = imaqfind;
 m = size(vids,2);
 if m > 0
@@ -81,10 +86,14 @@ if m > 0
         switch lower(vids(i).Type)
             case 'videoinput'
                 if vids(i).DeviceID == camIdx
+                    % Selected device already exists and is initialized
+                    % -> Get existing object
                     cam = vids(i);
+                    % -> Preview the object
                     if nargout > 1
                         prv = preview(cam);
                     end
+                    
                     return
                 end
         end
