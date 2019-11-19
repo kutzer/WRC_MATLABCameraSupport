@@ -1,5 +1,5 @@
-function [cam,prv] = initCamera
-% INITCAMERA initializes a video input object and, if applicable, opens a 
+function [cam,varargout] = initCamera
+% INITCAMERA initializes a video input object and, if applicable, opens a
 % preview.
 %
 %   cam = INITCAMERA returns the camera object. This is required for using
@@ -7,12 +7,12 @@ function [cam,prv] = initCamera
 %       -> im = getsnapshot(cam);
 %
 %   [cam,prv] = INITCAMERA returns both the camera object and the preview
-%   handle. Note that "prv" can be used to get images faster than 
+%   handle. Note that "prv" can be used to get images faster than
 %   getsnapshot.m using:
 %       -> im = get(prv,'CData');
 %
-%   NOTE: This requires an installed version of the "Image Acquisition 
-%       Toolbox" and the "Image Acquisition Toolbox Support Package for OS 
+%   NOTE: This requires an installed version of the "Image Acquisition
+%       Toolbox" and the "Image Acquisition Toolbox Support Package for OS
 %       Generic Video Interface"
 %       >> supportPackageInstaller
 %           -> select "Install from Internet"
@@ -26,6 +26,7 @@ function [cam,prv] = initCamera
 %   18Jan2017 - Updated documentation
 %   08Jan2019 - Updated documentation
 %   02Apr2019 - Updated to assign frame rate
+%   19Nov2019 - Updated to use imaqreset and check preview
 
 %% Declare persistent variable to declare new camera names
 % TODO - remove persistent and replace with device selection
@@ -58,7 +59,15 @@ end
 %% Check for cameras
 devices = imaqhwinfo('winvideo');
 if isempty(devices.DeviceIDs)
-    error('No connected camera found');
+    fprintf(' -> Trying "imaqreset"\n');
+    imaqreset;
+    devices = imaqhwinfo('winvideo');
+    if isempty(devices.DeviceIDs)
+        error('initCam:NoCamera',...
+            ['No connected camera found.\n',...
+            ' -> Check to confirm that your camera is\n',...
+            '    connected (e.g. use "Device Manager").\n']);
+    end
 end
 
 n = numel(devices.DeviceIDs);
@@ -67,8 +76,8 @@ if n > 1
         camList{i} = devices.DeviceInfo(i).DeviceName;
     end
     [camIdx,OK] = listdlg('PromptString','Select camera:',...
-                      'SelectionMode','single',...
-                      'ListString',camList);
+        'SelectionMode','single',...
+        'ListString',camList);
     if ~OK
         error('No camera selected.');
     end
@@ -89,11 +98,18 @@ if m > 0
                     % Selected device already exists and is initialized
                     % -> Get existing object
                     cam = vids(i);
-                    % -> Preview the object
-                    if nargout > 1
-                        prv = preview(cam);
+                    % -> Check to see if preview is working
+                    vOut = packageVarOut(cam,3);
+                    switch lower( get(vOut{2}.Text.Time,'String') )
+                        case lower('Time Stamp')
+                            fprintf(...
+                                ['Preview is not working.\n',...
+                                 '-> Trying "imaqreset"\n']);
+                            imaqreset;
+                            [cam,varargout] = initCamera;
+                        otherwise
+                            varargout = vOut(1:(nargout-1));
                     end
-                    
                     return
                 end
         end
@@ -110,7 +126,7 @@ for i = 1:m
             break
     end
 end
-         
+
 %% Create video input object
 cam = videoinput('winvideo',camIdx,...
     devices.DeviceInfo(camIdx).SupportedFormats{formatIDX});
@@ -121,7 +137,7 @@ set(cam,'Name',sprintf('camera%d',callNum));
 callNum = callNum + 1;
 
 %% Update camera properties
-src_obj = getselectedsource(cam); 
+src_obj = getselectedsource(cam);
 try
     set(src_obj, 'ExposureMode', 'manual');
     set(src_obj, 'Exposure', -4);
@@ -131,9 +147,51 @@ catch
 end
 
 %% Start camera and create preview
-triggerconfig(cam,'manual'); 
+triggerconfig(cam,'manual');
 start(cam);
+varargout = packageVarOut(cam,nargout);
+end
 
-if nargout > 1
+%% ------------------------------------------------------------------------
+%% Internal function(s)
+%% ------------------------------------------------------------------------
+function vOut = packageVarOut(cam,nOut)
+if nOut > 1
     prv = preview(cam);
+    vOut{1} = prv;
+end
+
+if nOut > 2
+    % Image object
+    img = prv;
+    % Axes object
+    axs = get(img,'Parent');
+    % Scroll panel object
+    scrlPanel = get(axs,'Parent');
+    % Panel object (containing preview image)
+    imagPanel = get(scrlPanel,'Parent');
+    % Figure object
+    fig = get(imagPanel,'Parent');
+    kids = get(fig,'Children');
+    % Panel object (containing preview info)
+    infoPanel = kids(2);
+    kids = get(infoPanel,'Children');
+    % Preview info text objects
+    txtTrg = get(kids(1),'Children');
+    txtFPS = get(kids(2),'Children');
+    txtRes = get(kids(3),'Children');
+    txtTime = get(kids(4),'Children');
+    
+    % Package output
+    out.Figure = fig;
+    out.Axes   = axs;
+    out.Image  = img;
+    out.Text.TripperInfo = txtTrg;
+    out.Text.FramesPerSecond = txtFPS;
+    out.Text.Resolution = txtRes;
+    out.Text.Time = txtTime;
+    
+    vOut{2} = out;
+end
+
 end
