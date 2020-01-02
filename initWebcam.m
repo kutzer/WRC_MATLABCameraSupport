@@ -81,7 +81,7 @@ catch err
     if ~OK
         error('Your %s',errTXT)
     else
-        error('Te selected %s',errTXT);
+        error('The selected %s',errTXT);
     end
 end
 if nargout > 1
@@ -91,6 +91,7 @@ if nargout > 1
     axs = get(prv,'Parent');
     % Set useful properties of axes object
     set(axs,'Visible','on');
+    hold(axs,'on');
     xlabel(axs,'x (pixels)');
     ylabel(axs,'y (pixels)');
     
@@ -106,20 +107,27 @@ if nargout > 1
                 kid = mom;
         end
     end
+    
+    % Update tags
+    set(fig,'Tag','Webcam Preview: Figure Object');
+    set(axs,'Tag','Webcam Preview: Axes Object');
+    set(prv,'Tag','Webcam Preview: Image Object');
+    
+    % Update figure name and close request function
     name = get(fig,'Name');
     name = sprintf('USNA WRC %s',name);
-    set(fig,'Name',name,'CloseRequestFcn',{@previewCloseCallback, cam, prv});
+    set(fig,'Name',name,'CloseRequestFcn',{@previewCloseCallback,cam,prv,axs});
 end
 
 end
 
 %% Embedded function(s)
-function previewCloseCallback(src,event,cam, prv)
+function previewCloseCallback(src,event,cam,prv,axs)
 
 out = questdlg(...
     'Are you sure you want to close this preview? Closing will delete the preview object.',...
     'Close Preview',...
-    'Yes','No','Recover my Object Handles','No');
+    'Yes','No','Recover Handles','No');
 
 switch out
     case 'Yes'
@@ -127,19 +135,39 @@ switch out
     case 'No'
         % Bring preview figure to front
         figure(src);
-    case 'Recover Object Handles'
+    case 'Recover Handles'
         % Bring preview figure to front
         figure(src);
+        
+        % Get any/all objects added to the axes
+        kids = get(axs,'Children');
+        bin = false(size(kids));
+        for i = 1:numel(kids)
+            switch get(kids(i),'Tag')
+                case 'Webcam Preview: Image Object'
+                    % Preview object
+                    bin(i) = true;
+                otherwise
+                    % Miscellaneous "added" object
+            end
+        end
+        % Remove preview object
+        kids(bin) = [];
+        
         % Assign values to the base workspace
         assignin('base','cam',cam);
         assignin('base','prv',prv);
+        assignin('base','misc',kids);
         % Notify the user
         fprintf(...
             ['The following variables have been added/updated in your base workspace:\n',...
-            '\t"cam" - webcam object handle, and\n',...
-            '\t"prv" - preview image object handle.\n']);
+            '\t "cam" - webcam object handle,\n',...
+            '\t "prv" - preview image object handle, and\n',...
+            '\t"misc" - any objects that have been added as children of the preview axes handle.\n']);
     otherwise
-        error('Unknown response.');
+        fprintf(2,'Action cancelled.\n');
+        % Bring preview figure to front
+        figure(src);
 end
 
 end
