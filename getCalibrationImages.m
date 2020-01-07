@@ -1,25 +1,25 @@
-function imageFolder = getCalibrationImages(cam,varargin)
-% GETCALIBRATIONIMAGES aquires a set number of images from a designated
-% videoinput object and saves them to a specific directory for use in camera
-% calibration.
-%   getCalibrationImages(cam) acquires a set of 12 images with the base
-%   image name "im" in an image folder named 
-%   "Calibration Data Set, ..., Experimental ..." containing a date stamp 
-%   and a unique time of creation.
+function imageFolder = getCalibrationImages(prv,varargin)
+% GETCALIBRATIONIMAGES aquires a set number of images from one or more live
+% camera preview(s) and saves them to a specific directory for use in 
+% camera calibration.
+%   getCalibrationImages(prv) acquires a set of 12 images with a base image
+%   name of "im" in an image folder named 
+%   "Calibration Data Set, [DATE], Experiment [TIME]" containing a date  
+%   and a unique time stamp of creation.
 %
-%   NOTE: Multiple camera objects can be specified within cam using a 
-%   cell-array (e.g. cams = {cam1,cam2,...}). Doing so will update the 
+%   NOTE: Multiple live camera previews can be specified within "prv" using
+%   an array (e.g. prvs = [prv1, prv2, ...]). Doing so will update the 
 %   image names to "cam1_im...", "cam2_im...", etc. Specifying a different 
-%   image name will change "im".
+%   image name value will change "im".
 %
-%   getCalibrationImages(cam,n) acquires a set of n images with default
+%   getCalibrationImages(prv,n) acquires a set of n images with the default
 %   base image name and image folder specified above. 
 %
-%   getCalibrationImages(cam,imageName,imageFolder) acquires a set of 12
+%   getCalibrationImages(prv,imageName,imageFolder) acquires a set of 12
 %   images with the base image name specified in "imageName" and an image 
 %   folder name specified in "imageFolder".
 %
-%   getCalibrationImages(cam,imageName,imageFolder,n) acquires a set of n
+%   getCalibrationImages(prv,imageName,imageFolder,n) acquires a set of n
 %   images with the base image name specified in "imageName" and an image 
 %   folder name specified in "imageFolder".
 %
@@ -33,12 +33,12 @@ function imageFolder = getCalibrationImages(cam,varargin)
 % Updates
 %   02Feb2016 - Added multiple camera option.
 %   18Jan2017 - Updated to migrate from webcam to videoinput objects
+%   07Jan2020 - Updated to replace camera object with live preview object. 
+%               This makes the function compatible with webcam and
+%               videoinput objects.
+%
 
 %% Parse and check inputs
-% Make single camera object into cell-array
-if numel(cam) == 1 && ~iscell(cam)
-    cam = {cam};
-end
 % Check number of inputs
 narginchk(1,4);
 % Set default values
@@ -46,17 +46,27 @@ imageName = [];
 imageFolder = [];
 n = [];
 % Check videoinput object
-for i = 1:numel(cam)
-    switch lower( class(cam{i}) )
-        case 'videoinput'
-            % Specified camera object is a videoinput
+goodPrv = true;
+for i = 1:numel(prv)
+    if ~ishandle(prv)
+        goodPrv = false;
+        break;
+    end
+    switch lower( get(prv(i),'Type') )
+        case 'image'
+            % Specified object is a valid preview
         otherwise
-            error('getCal:BadCam',...
-                ['Specified camera object must be a "videoinput". Use:\n',...
-                ' -> cam = initCamera; or \n',...
-                ' -> cam = videoinput(___); %% e.g. videoinput(''winvideo'')']);
+            goodPrv = false;
+            break
     end
 end
+if ~goodPrv
+    error('getCal:BadPrv',...
+        ['Specified live preview must be a valid image graphics handle. Use:\n',...
+        ' -> [~,prv] = initCamera; or \n',...
+        ' -> [~,prv] = initWebcam;']);
+end
+
 % Parse inputs
 if nargin == 2
     n = varargin{1};
@@ -70,6 +80,7 @@ if nargin == 4
     imageFolder = varargin{2};
     n = varargin{3};
 end
+
 % Set defaults
 if isempty(n)
     n = 12;
@@ -80,7 +91,7 @@ end
 if isempty(imageFolder)
     d = datetime('today');
     dateStr = sprintf('%04d%02d%02d',d.Year,d.Month,d.Day);
-    imageFolder = sprintf('Calibration Data Set, %s, Experimental %d',...
+    imageFolder = sprintf('Calibration Data Set, %s, Experiment %d',...
         dateStr,round((now-floor(now))*1e6));
     fprintf('Using default Image Folder: \n -> "%s"\n',imageFolder);
 end
@@ -97,16 +108,12 @@ end
 %TODO - check for valid file/folder names
 
 %% Create image folder if it does not already exist
-if ~isdir(imageFolder)
+if ~isfolder(imageFolder)
     mkdir(imageFolder);
 end
 
-%% Get preview
-for i = 1:numel(cam)
-    prv(i) = preview(cam{i});
-end
-
 %% Get images
+fmt = 'png';
 for i = 1:n
     % Status update
     fprintf('Getting calibration image %d of %d...',i,n);
@@ -121,15 +128,15 @@ for i = 1:n
     end
     % Define image filename(s)
     if numel(im) == 1
-        fname{1} = sprintf('%s%d.jpg',imageName,i);
+        fname{1} = sprintf('%s%d.%s',imageName,i,fmt);
     else
         for j = 1:numel(im)
-            fname{j} = sprintf('cam%d_%s%d.jpg',j,imageName,i);
+            fname{j} = sprintf('cam%d_%s%d.%s',j,imageName,i,fmt);
         end
     end
     % Save image(s)
     for j = 1:numel(im)
-        imwrite(im{j},fullfile(imageFolder,fname{j}),'jpg');
+        imwrite(im{j},fullfile(imageFolder,fname{j}),fmt);
     end
     % Status update
     fprintf('[Complete]\n');
