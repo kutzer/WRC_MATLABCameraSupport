@@ -2,14 +2,26 @@ function [cam,varargout] = initCamera
 % INITCAMERA initializes a video input object and, if applicable, opens a
 % preview.
 %
-%   cam = INITCAMERA returns the camera object. This is required for using
-%   getsnapshot.m:
-%       -> im = getsnapshot(cam);
-%
 %   [cam,prv] = INITCAMERA returns both the camera object and the preview
 %   handle. Note that "prv" can be used to get images faster than
 %   getsnapshot.m using:
 %       -> im = get(prv,'CData');
+%
+%   [cam,prv,pHandles] = INITCAMERA returns the camera object, the preview
+%   handle, and a structured array containing all handles contained in the
+%   preview figure. The structured array pHandles contains the following:
+%       pHandles.Figure - Figure handle that contains the preview
+%       pHandles.Axes   - Axes handle that contains the preview
+%       pHandles.Image  - Image handle that *is* the preview
+%       pHandles.Text.*
+%           .TriggerInfo     - Text handle that contains trigger info
+%           .FramesPerSecond - Text handle that contains frames per second
+%           .Resolution      - Text handle that contains resolution info
+%           .Time            - Text handle that contains the time stamp
+%
+%   cam = INITCAMERA returns the camera object. This is required for using
+%   getsnapshot.m:
+%       -> im = getsnapshot(cam);
 %
 %   NOTE: This requires an installed version of the "Image Acquisition
 %       Toolbox" and the "Image Acquisition Toolbox Support Package for OS
@@ -27,6 +39,9 @@ function [cam,varargout] = initCamera
 %   08Jan2019 - Updated documentation
 %   02Apr2019 - Updated to assign frame rate
 %   19Nov2019 - Updated to use imaqreset and check preview
+%   28Jan2020 - Updated to check for a single output (MIDN C.J. Witte)
+%   28Jan2020 - Updated documentation for handles output
+%   28Jan2020 - Added callback function to preview
 
 %% Declare persistent variable to declare new camera names
 % TODO - remove persistent and replace with device selection
@@ -98,8 +113,13 @@ if m > 0
                     % Selected device already exists and is initialized
                     % -> Get existing object
                     cam = vids(i);
+                    % -> Check if no preview is required
+                    if nargout == 1
+                        return
+                    end
                     % -> Check to see if preview is working
                     vOut = packageVarOut(cam,3);
+                    drawnow;
                     switch lower( get(vOut{2}.Text.Time,'String') )
                         case lower('Time Stamp')
                             fprintf(...
@@ -152,16 +172,21 @@ start(cam);
 varargout = packageVarOut(cam,nargout);
 end
 
-%% ------------------------------------------------------------------------
-%% Internal function(s)
-%% ------------------------------------------------------------------------
+%% Embedded function(s)
+
+% Package varargout
 function vOut = packageVarOut(cam,nOut)
-if nOut > 1
-    prv = preview(cam);
-    vOut{1} = prv;
+vOut = {};
+if nOut == 0
+    return;
 end
 
-if nOut > 2
+if nOut > 1
+    % Initialize preview
+    prv = preview(cam);
+    vOut{1} = prv;
+    
+    % Parse preview handles 
     % Image object
     img = prv;
     % Axes object
@@ -172,6 +197,26 @@ if nOut > 2
     imagPanel = get(scrlPanel,'Parent');
     % Figure object
     fig = get(imagPanel,'Parent');
+    
+    % Set useful properties of axes object
+    set(axs,'Visible','on');
+    hold(axs,'on');
+    xlabel(axs,'x (pixels)');
+    ylabel(axs,'y (pixels)');
+    
+    % Update tags
+    set(fig,'Tag','Camera Preview: Figure Object');
+    set(axs,'Tag','Camera Preview: Axes Object');
+    set(prv,'Tag','Camera Preview: Image Object');
+    
+    % Update figure name and close request function
+    name = get(fig,'Name');
+    name = sprintf('USNA WRC %s',name);
+    set(fig,'Name',name,'CloseRequestFcn',{@previewCloseCallback,cam,prv,axs});
+end
+
+if nOut > 2
+    % Get children of the preview object
     kids = get(fig,'Children');
     % Panel object (containing preview info)
     infoPanel = kids(2);
@@ -186,12 +231,63 @@ if nOut > 2
     out.Figure = fig;
     out.Axes   = axs;
     out.Image  = img;
-    out.Text.TripperInfo = txtTrg;
+    out.Text.TriggerInfo = txtTrg;
     out.Text.FramesPerSecond = txtFPS;
     out.Text.Resolution = txtRes;
     out.Text.Time = txtTime;
     
     vOut{2} = out;
+end
+
+end
+
+% Close preview callback
+function previewCloseCallback(src,event,cam,prv,axs)
+
+out = questdlg(...
+    'Are you sure you want to close this preview? Closing will delete the preview object.',...
+    'Close Preview',...
+    'Yes','No','Recover Handles','No');
+
+switch out
+    case 'Yes'
+        closepreview(cam);
+    case 'No'
+        % Bring preview figure to front
+        figure(src);
+    case 'Recover Handles'
+        % Bring preview figure to front
+        figure(src);
+        
+        % Get any/all objects added to the axes
+        kids = get(axs,'Children');
+        bin = false(size(kids));
+        for i = 1:numel(kids)
+            switch get(kids(i),'Tag')
+                case 'Webcam Preview: Image Object'
+                    % Preview object
+                    bin(i) = true;
+                otherwise
+                    % Miscellaneous "added" object
+            end
+        end
+        % Remove preview object
+        kids(bin) = [];
+        
+        % Assign values to the base workspace
+        assignin('base','cam',cam);
+        assignin('base','prv',prv);
+        assignin('base','misc',kids);
+        % Notify the user
+        fprintf(...
+            ['The following variables have been added/updated in your base workspace:\n',...
+            '\t "cam" - webcam object handle,\n',...
+            '\t "prv" - preview image object handle, and\n',...
+            '\t"misc" - any objects that have been added as children of the preview axes handle.\n']);
+    otherwise
+        fprintf(2,'Action cancelled.\n');
+        % Bring preview figure to front
+        figure(src);
 end
 
 end
