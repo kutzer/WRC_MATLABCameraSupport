@@ -48,7 +48,7 @@ n = [];
 % Check videoinput object
 goodPrv = true;
 for i = 1:numel(prv)
-    if ~ishandle(prv)
+    if ~ishandle(prv(i))
         goodPrv = false;
         break;
     end
