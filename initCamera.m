@@ -264,7 +264,7 @@ switch out
         bin = false(size(kids));
         for i = 1:numel(kids)
             switch get(kids(i),'Tag')
-                case 'Webcam Preview: Image Object'
+                case 'Camera Preview: Image Object'
                     % Preview object
                     bin(i) = true;
                 otherwise

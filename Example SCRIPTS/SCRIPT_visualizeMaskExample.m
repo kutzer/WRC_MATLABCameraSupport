@@ -16,14 +16,16 @@ im = get(img,'CData');
 %colorThresholder(im);
 
 %% visualize
+minArea = 5000;
+maxArea = 10000;
 plt = plot(axs,0,0,'.g');
 while true
     im = get(img,'CData');
-    [BW,maskedRGBImage] = createMaskExample(im);
-    BW = bwareaopen(BW,5000);
+    BW = createMaskExample(im);
+    BW = bwminmaxarea(BW,minArea,maxArea,8);
     BW = imfill(BW,'holes');
     
-    [y,x] = find(~BW);
+    [y,x] = find(BW);
     set(plt,'XData',x,'YData',y);
     drawnow;
 end
