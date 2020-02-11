@@ -1,4 +1,4 @@
-function imageFolder = getCalibrationImages(prv,varargin)
+function varargout = getCalibrationImages(prv,varargin)
 % GETCALIBRATIONIMAGES aquires a set number of images from one or more live
 % camera preview(s) and saves them to a specific directory for use in 
 % camera calibration.
@@ -26,6 +26,9 @@ function imageFolder = getCalibrationImages(prv,varargin)
 %   imageFolder = getCalibrationImages(___) returns the full path to the
 %   imageFolder.
 %
+%   [imageFolder,imageNames] = getCalibrationImages(___) returns the full 
+%   path to the imageFolder and a cell array of the image names used.
+%
 %   See also initCamera cameraCalibrator
 %
 %   M. Kutzer, 30Jan2016, USNA
@@ -36,6 +39,9 @@ function imageFolder = getCalibrationImages(prv,varargin)
 %   07Jan2020 - Updated to replace camera object with live preview object. 
 %               This makes the function compatible with webcam and
 %               videoinput objects.
+%   06Feb2020 - Added leading zeros to camera and image numbering in
+%               filenames. 
+%   06Feb2020 - Updated to also return image names.
 %
 
 %% Parse and check inputs
@@ -128,16 +134,26 @@ for i = 1:n
     end
     % Define image filename(s)
     if numel(im) == 1
-        fname{1} = sprintf('%s%d.%s',imageName,i,fmt);
+        fname{1} = sprintf('%s%03d.%s',imageName,i,fmt);
     else
         for j = 1:numel(im)
-            fname{j} = sprintf('cam%d_%s%d.%s',j,imageName,i,fmt);
+            fname{j} = sprintf('cam%02d_%s%03d.%s',j,imageName,i,fmt);
         end
     end
     % Save image(s)
     for j = 1:numel(im)
         imwrite(im{j},fullfile(imageFolder,fname{j}),fmt);
+        imageNames{i,j} = fname{j};
     end
     % Status update
     fprintf('[Complete]\n');
+end
+
+%% Package output(s)
+if nargout > 0
+    varargout{1} = imageFolder;
+end
+
+if nargout > 1
+    varargout{2} = imageNames;
 end
