@@ -35,7 +35,7 @@ pathName = 'ScorBot Fixed Camera Calibration';
 % -> [0,pi/2,-pi/2,0,-pi/2] % EW452 LAB 3 for correct roll
 ScorSetBSEPR([0,pi/2,-pi/2,0,-pi/2]);
 ScorWaitForMove;
-ScorSetGripper(15);
+ScorSetGripper(9);
 ScorWaitForMove;
 
 % Place checkerboard in gripper
@@ -45,7 +45,7 @@ uiwait(...
     );
 
 % Close gripper
-ScorSetGripper(14);
+ScorSetGripper(6);
 ScorWaitForMove;
 
 % Place checkerboard in gripper
@@ -55,7 +55,7 @@ uiwait(...
     );
 
 % Close gripper
-ScorSetGripper(8);
+ScorSetGripper(3);
 ScorWaitForMove;
 
 % Prompt user to adjust camera so checkerboard is in FOV
@@ -168,10 +168,13 @@ end
 A_c2m = transpose( cameraParams.IntrinsicMatrix );
 
 %% Calculate H_c2o & H_o2c
+cameraParams.RotationMatrices
+
+fprintf('SCORBOT - "%s"\n',imageFileNames{idx_ScorBot});
 % TODO - consider multiple transforms (meanSE)
 i = idx_ScorBot(1); % index value for ScorBot holding target
-H_g2c = [cameraParams.RotationMatrices(:,:,i)',...
- 	     cameraParams.TranslationVectors(i,:)';...
+H_g2c = [cameraParams.RotationMatrices(:,:,i).',...
+ 	     cameraParams.TranslationVectors(i,:).';...
  	     0,0,0,1];
 
 H_c2o = H_e2o*H_g2e*(H_g2c)^(-1);
@@ -179,10 +182,12 @@ H_c2o = H_e2o*H_g2e*(H_g2c)^(-1);
 H_o2c = (H_c2o)^(-1);
 
 %% Calculate H_t2c
+
+fprintf('TABLE - "%s"\n',imageFileNames{idx_Table});
 % TODO - consider multiple transforms (meanSE)
 i = idx_Table(1); % index value for ScorBot holding target
-H_g2c = [cameraParams.RotationMatrices(:,:,i)',...
- 	     cameraParams.TranslationVectors(i,:)';...
+H_g2c = [cameraParams.RotationMatrices(:,:,i).',...
+ 	     cameraParams.TranslationVectors(i,:).';...
  	     0,0,0,1];
 H_t2g = Tz(b)*Tx(pi);
 
