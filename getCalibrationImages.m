@@ -123,10 +123,16 @@ fmt = 'png';
 for i = 1:n
     % Status update
     fprintf('Getting calibration image %d of %d...',i,n);
-    % Wait for user
-    uiwait(...
-        msgbox('Place checkerboard in camera FOV...[Enter to Continue]','Grab Image')...
-        );
+    
+    if n > 1
+        % Wait for user
+        uiwait(...
+            msgbox('Place checkerboard in camera FOV...[Enter to Continue]','Grab Image')...
+            );
+    else
+        fprintf('<SINGLE IMAGE, NO WAIT FOR USER>...');
+    end
+    
     % Grab image(s)
     drawnow
     for j = 1:numel(prv)

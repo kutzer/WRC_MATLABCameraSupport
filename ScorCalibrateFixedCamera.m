@@ -10,6 +10,17 @@ function [A_c2m,H_o2c,H_t2c] = ScorCalibrateFixedCamera(prv)
 %
 %   M. Kutzer, 06Feb2020, USNA
 
+%% Set debug flag
+debugON = true;
+if debugON
+    sim = ScorSimInit;
+    ScorSimPatch(sim);
+    
+    for i = 1:5
+        hideTriad( sim.Frames(i) );
+    end
+end
+
 %% Check input(s)
 if ~ishandle(prv)
     error('The input to this function must be a valid camera or webcam preview.');
@@ -27,8 +38,9 @@ if ~ScorIsReady
 end
 
 %% Define calibration foldername
-% TODO - add random 
+% TODO - add time-stamped calibration foldername 
 pathName = 'ScorBot Fixed Camera Calibration';
+icon = imread('Icon_ScorBot.png');
 
 %% Take calibration images
 % Move the robot into the field of view
@@ -41,7 +53,7 @@ ScorWaitForMove;
 % Place checkerboard in gripper
 % -> Wait for user
 uiwait(...
-    msgbox('Place checkerboard gripper...[Enter to Continue]','Grab Checkerboard')...
+    msgbox('Place checkerboard gripper...[Enter to Continue]','Grab Checkerboard' )...
     );
 
 % Close gripper
@@ -51,7 +63,7 @@ ScorWaitForMove;
 % Place checkerboard in gripper
 % -> Wait for user
 uiwait(...
-    msgbox('Adjust checkerboard in gripper...[Enter to Continue]','Adjust Checkerboard')...
+    msgbox('Adjust checkerboard in gripper...[Enter to Continue]','Adjust Checkerboard' )...
     );
 
 % Close gripper
@@ -61,14 +73,20 @@ ScorWaitForMove;
 % Prompt user to adjust camera so checkerboard is in FOV
 % -> Wait for user
 uiwait(...
-    msgbox('Adjust camera so the entire checkerboard is in the FOV...[Enter to Continue]','Adjust camera')...
+    msgbox('Adjust camera so the entire checkerboard is in the FOV...[Enter to Continue]','Adjust camera' )...
     );
 % -> Get calibration image
 fprintf('\n--> Capture image of checkerboard in gripper.\n');
 fileBase_ScorBot = 'img_ScorBot';
-[folderName,imageNames_ScorBot] = getCalibrationImages(prv,fileBase_ScorBot,pathName,1);
+[~,imageNames_ScorBot] = getCalibrationImages(prv,fileBase_ScorBot,pathName,1);
+
 % -> Get forward kinematics
 H_e2o = ScorGetPose;
+
+if debugON
+    ScorSimSetPose(sim,H_e2o);
+end
+
 % -> Calculate H_g2e
 % ? – The thickness of the checkerboard calibration object (in millimeters).
 % ? – The width of the ScorBot gripper fingertip (in millimeters).
@@ -78,10 +96,16 @@ w = 15.1;
 d = ScorGetGripperOffset;
 H_g2e = Ty(b/2)*Tx(w/2 + 29.2)*Tz(d + 22.4)*Ry(-pi/2)*Rx(pi/2);
 
+if debugON
+    hg_g2e = triad('Scale',50,'LineWidth',2,'Parent',sim.Frames(6),...
+        'AxisLabels',{'x_{g}','y_{g}','z_{g}'},'Matrix',H_g2e);
+end
+
+
 % Prompt user
 % -> Wait for user
 uiwait(...
-    msgbox('Hold checkerboard...[Enter to Continue]','Remove checkerboard')...
+    msgbox('Hold checkerboard...[Enter to Continue]','Remove checkerboard' )...
     );
 
 ScorSetGripper('Open');
@@ -94,17 +118,17 @@ ScorWaitForMove;
 % Prompt user
 % -> Wait for user
 uiwait(...
-    msgbox('Collect handheld calibration images...[Enter to Continue]','Handheld calibration')...
+    msgbox('Collect handheld calibration images...[Enter to Continue]','Handheld calibration' )...
     );
 
 fprintf('\n--> Capture unique images of checkerboard in hand.\n');
 fileBase_Hand = 'img_Handheld';
-[folderName,imageNames_Hand] = getCalibrationImages(prv,fileBase_Hand,pathName,10);
+[~,imageNames_Hand] = getCalibrationImages(prv,fileBase_Hand,pathName,10);
 
 % Prompt user
 % -> Wait for user
 uiwait(...
-    msgbox('Place checkerboard on the table within the camera FOV...[Enter to Continue]','Table calibration')...
+    msgbox('Place checkerboard on the table within the camera FOV...[Enter to Continue]','Table calibration' )...
     );
 
 fprintf('\n--> Capture image of checkerboard on the table.\n');
