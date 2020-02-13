@@ -10,8 +10,9 @@ end
 drawnow;
 
 %% Calibrate
-[A_c2m,H_o2c,H_t2c] = ScorCalibrateFixedCamera(prv);
+[A_c2m,H_c2o,H_c2o] = ScorCalibrateFixedCamera(prv);
 
+return
 %% Visualize results
 sim = ScorSimInit;
 ScorSimPatch(sim);
