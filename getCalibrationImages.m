@@ -125,12 +125,13 @@ for i = 1:n
     fprintf('Getting calibration image %d of %d...',i,n);
     
     if n > 1
+        msg = sprintf('Place checkerboard in camera FOV (%d of %d)...[Enter to Continue]',i,n);
         % Wait for user
         uiwait(...
-            msgbox('Place checkerboard in camera FOV...[Enter to Continue]','Grab Image')...
+            msgbox(msg,'Grab Image')...
             );
     else
-        fprintf('<SINGLE IMAGE, NO WAIT FOR USER>...');
+        fprintf('<SINGLE IMAGE, UIWAIT>...');
     end
     
     % Grab image(s)

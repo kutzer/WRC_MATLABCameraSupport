@@ -9,6 +9,20 @@ function [A_c2m,H_c2o,H_t2o] = ScorCalibrateFixedCamera(prv)
 %
 %   M. Kutzer, 06Feb2020, USNA
 
+global debugON sim icon
+
+%% Adjust preview position
+prvFIG = getParentFigure(prv);
+set(prvFIG,'Units','Normalized');
+
+pos = get(prvFIG,'Position');
+dpos = 0.005;   % Distance from side of screen
+wpos = 0.030;   % Window height 
+pos(1) = dpos;
+pos(2) = 1-(pos(4) + dpos + wpos);
+
+set(prvFIG,'Position',pos);
+
 %% Set debug flag
 debugON = true;
 if debugON
@@ -18,6 +32,8 @@ if debugON
     for i = 1:5
         hideTriad( sim.Frames(i) );
     end
+    
+    figure(prvFIG);
 end
 
 %% Check input(s)
@@ -42,15 +58,20 @@ pathName = 'ScorBot Fixed Camera Calibration';
 icon = imread('Icon_ScorBot.png');
 
 %% Take calibration images
-getImages_ScorBot;
-getImages_Handheld;
-getImages_Table;
+fileBase_ScorBot = 'img_ScorBot';
+fileBase_Hand = 'img_Handheld';
+fileBase_Table = 'img_Table';
+
+[imageNames_ScorBot,H_e2o,H_g2e,b,w,d] = getImages_ScorBot(prv,fileBase_ScorBot,pathName,1);
+imageNames_Hand = getImages_Handheld(prv,fileBase_Hand,pathName,10);
+imageNames_Table = getImages_Table(prv,fileBase_Table,pathName,1);
 
 %% Combine image names
-combineImages;
+[imageNames,imageFileNames] = combineImages(pathName, imageNames_ScorBot, imageNames_Hand, imageNames_Table);
 
 %% Calibrate camera
-calibrateCamera;
+squareSize = 1.905000e+01;  % in units of 'millimeters'
+[imageFileNames,cameraParams,estimationErrors,boardSize] = calibrateCamera(imageFileNames,squareSize);
 
 %% Find ScorBot image index & Table image index
 idx_ScorBot = [];
@@ -74,18 +95,18 @@ while isempty(idx_ScorBot) || isempty(idx_Table)
     if isempty(idx_ScorBot)
         fprintf(2,'!!! We need to take a new ScorBot Image !!!\n');
         RECALIBRATE = true;
-        getImages_ScorBot;
+        [imageNames_ScorBot,H_e2o,H_g2e,b,w,d] = getImages_ScorBot(prv,fileBase_ScorBot,pathName,1);
     end
     
     if isempty(idx_Table)
         fprintf(2,'!!! We need to take a new Table Image !!!\n');
         RECALIBRATE = true;
-        getImages_Table;
+        imageNames_Table = getImages_Table(prv,fileBase_Table,pathName,1);
     end
     
     if RECALIBRATE
-        combineImages;
-        calibrateCamera;
+        [imageNames,imageFileNames] = combineImages(pathName, imageNames_ScorBot, imageNames_Hand, imageNames_Table);
+        [imageFileNames,cameraParams,estimationErrors,boardSize] = calibrateCamera(imageFileNames,squareSize);
         RECALIBRATE = false;
     end
 end
@@ -117,14 +138,13 @@ if debugON
         set(hg_cb(i),'Parent',hg_cam,'Matrix',H_g2c{i});
     end
 end
+
 %% Package output(s)
 %[A_c2m,H_o2c,H_t2o]
 A_c2m = transpose( cameraParams.IntrinsicMatrix );
 
 %% Calculate H_c2o & H_o2c
-cameraParams.RotationMatrices
-
-fprintf('SCORBOT - "%s"\n',imageFileNames{idx_ScorBot});
+fprintf('SCORBOT Image - "%s"\n',imageFileNames{idx_ScorBot});
 % TODO - consider multiple transforms (meanSE)
 H_c2o = H_e2o*H_g2e*( H_g2c{idx_ScorBot(1)} )^(-1);
 
@@ -133,8 +153,7 @@ if debugON
 end
 
 %% Calculate H_t2c
-
-fprintf('TABLE - "%s"\n',imageFileNames{idx_Table});
+fprintf('TABLE Image - "%s"\n',imageFileNames{idx_Table});
 % TODO - consider multiple transforms (meanSE)
 H_t2g = Tz(b)*Tx(pi);
 
@@ -147,6 +166,7 @@ if debugON
     axis(sim.Axes,'tight');
 end
 
+%% Display errors
 %{
 % View reprojection errors
 h1=figure; showReprojectionErrors(cameraParams);
@@ -161,141 +181,169 @@ displayErrors(estimationErrors, cameraParams);
 undistortedImage = undistortImage(originalImage, cameraParams);
 %}
 
-%% INTERNAL FUNCTION
-    function getImages_ScorBot
-        % Move the robot into the field of view
-        % -> [0,pi/2,-pi/2,0,-pi/2] % EW452 LAB 3 for correct roll
-        ScorSetBSEPR([0,pi/2,-pi/2,0,-pi/2]);
-        ScorWaitForMove;
-        ScorSetGripper(9);
-        ScorWaitForMove;
-        
-        % Place checkerboard in gripper
-        UserPrompt(...
-            {'Place checkerboard',...
-            'in gripper...'},...
-            'Grab Checkerboard', icon);
-        
-        % Close gripper
-        ScorSetGripper(6);
-        ScorWaitForMove;
-        
-        % Place checkerboard in gripper
-        UserPrompt(...
-            {'Adjust checkerboard',...
-            'in gripper...'},...
-            'Adjust Checkerboard', icon);
-        
-        % Close gripper
-        ScorSetGripper(3);
-        ScorWaitForMove;
-        
-        % Prompt user to adjust camera so checkerboard is in FOV
-        UserPrompt(...
-            {'Adjust camera so the',...
-            'entire checkerboard',...
-            'is in the FOV...'},...
-            'Adjust camera', icon);
-        
-        % -> Get calibration image
-        fprintf('\n--> Capture image of checkerboard in gripper.\n');
-        fileBase_ScorBot = 'img_ScorBot';
-        [~,imageNames_ScorBot] = getCalibrationImages(prv,fileBase_ScorBot,pathName,1);
-        
-        % -> Get forward kinematics
-        H_e2o = ScorGetPose;
-        
-        if debugON
-            ScorSimSetPose(sim,H_e2o);
-        end
-        
-        % -> Calculate H_g2e
-        % b – The thickness of the checkerboard calibration object (in millimeters).
-        % w – The width of the ScorBot gripper fingertip (in millimeters).
-        % d – The gripper offset between the end-effector frame and the tip of the gripper (in millimeters).
-        b = ScorGetGripper;
-        w = 15.1;
-        d = ScorGetGripperOffset;
-        H_g2e = Ty(b/2)*Tx(w/2 + 29.2)*Tz(d + 22.4)*Ry(-pi/2)*Rx(pi/2);
-        
-        if debugON
-            ScorSimSetGripper(sim,b);
-            hg_g2e = triad('Scale',50,'LineWidth',2,'Parent',sim.Frames(6),...
-                'AxisLabels',{'x_{g}','y_{g}','z_{g}'},'Matrix',H_g2e);
-        end
-        
-        % Prompt user
-        UserPrompt(...
-            {'Hold checkerboard!'},...
-            'Remove checkerboard', icon);
-        
-        ScorSetGripper('Open');
-        ScorWaitForMove;
-        
-        % Move the robot out of the field of view
-        ScorSetDeltaBSEPR([pi/2,0,0,0,0]);
-        ScorWaitForMove;
-    end
-
-    function getImages_Handheld
-        % Prompt user
-        UserPrompt(...
-            {'Collect handheld',...
-            'calibration images...'},...
-            'Handheld calibration', icon);
-        
-        fprintf('\n--> Capture unique images of checkerboard in hand.\n');
-        fileBase_Hand = 'img_Handheld';
-        [~,imageNames_Hand] = getCalibrationImages(prv,fileBase_Hand,pathName,10);
-    end
-
-    function getImages_Table
-        % Prompt user
-        UserPrompt(...
-            {'Place checkerboard on',...
-            'the table within the',...
-            'camera FOV...'},...
-            'Table calibration', icon);
-        
-        fprintf('\n--> Capture image of checkerboard on the table.\n');
-        fileBase_Table = 'img_Table';
-        [folderName,imageNames_Table] = getCalibrationImages(prv,fileBase_Table,pathName,1);
-    end
-
-    function combineImages
-        imageNames = [imageNames_ScorBot; imageNames_Hand; imageNames_Table];
-        
-        imageFileNames = {};
-        for ii = 1:numel(imageNames)
-            imageFileNames{ii} = fullfile(folderName,imageNames{ii});
-        end
-    end
-
-    function calibrateCamera
-        % Detect checkerboards in images
-        [imagePoints, boardSize, imagesUsed] = detectCheckerboardPoints(imageFileNames);
-        % Down-sample images
-        imageFileNames = imageFileNames(imagesUsed);
-        
-        % Read the first image to obtain image size
-        originalImage = imread(imageFileNames{1});
-        [mrows, ncols, ~] = size(originalImage);
-        
-        % Generate world coordinates of the corners of the squares
-        squareSize = 1.905000e+01;  % in units of 'millimeters'
-        worldPoints = generateCheckerboardPoints(boardSize, squareSize);
-        
-        % Calibrate the camera
-        [cameraParams, imagesUsed, estimationErrors] = estimateCameraParameters(imagePoints, worldPoints, ...
-            'EstimateSkew', false, 'EstimateTangentialDistortion', false, ...
-            'NumRadialDistortionCoefficients', 2, 'WorldUnits', 'millimeters', ...
-            'InitialIntrinsicMatrix', [], 'InitialRadialDistortion', [], ...
-            'ImageSize', [mrows, ncols]);
-        % Down-sample images
-        imageFileNames = imageFileNames(imagesUsed);
-    end
+%% Save outputs
+var_filename = fullfile(pathName,'CalibrationParameters.mat');
+save(var_filename,'A_c2m','H_c2o','H_t2o','imageFileNames','idx_Table','idx_ScorBot','estimationErrors','cameraParams','b','w','d');
 
 end
+
+%% EXTERNAL FUNCTIONS
+function [imageNames_ScorBot,H_e2o,H_g2e,b,w,d] = getImages_ScorBot(prv,fileBase_ScorBot,pathName,n)
+
+global debugON sim icon
+
+% Move the robot into the field of view
+% -> [0,pi/2,-pi/2,0,-pi/2] % EW452 LAB 3 for correct roll
+ScorSetBSEPR([0,pi/2,-pi/2,0,-pi/2]);
+ScorWaitForMove;
+ScorSetGripper(9);
+ScorWaitForMove;
+
+% Place checkerboard in gripper
+UserPrompt(...
+    {'Place checkerboard',...
+    'in gripper...'},...
+    'Grab Checkerboard', icon);
+
+% Close gripper
+ScorSetGripper(6);
+ScorWaitForMove;
+
+% Place checkerboard in gripper
+UserPrompt(...
+    {'Adjust checkerboard',...
+    'in gripper...'},...
+    'Adjust Checkerboard', icon);
+
+% Close gripper
+ScorSetGripper(3);
+ScorWaitForMove;
+
+% Prompt user to adjust camera so checkerboard is in FOV
+UserPrompt(...
+    {'Adjust camera so the',...
+    'entire checkerboard',...
+    'is in the FOV...'},...
+    'Adjust camera', icon);
+
+% -> Get calibration image
+fprintf('\n--> Capture image of checkerboard in gripper.\n');
+
+[~,imageNames_ScorBot] = getCalibrationImages(prv,fileBase_ScorBot,pathName,n);
+
+% -> Get forward kinematics
+H_e2o = ScorGetPose;
+
+if debugON
+    ScorSimSetPose(sim,H_e2o);
+end
+
+% -> Calculate H_g2e
+% b – The thickness of the checkerboard calibration object (in millimeters).
+% w – The width of the ScorBot gripper fingertip (in millimeters).
+% d – The gripper offset between the end-effector frame and the tip of the gripper (in millimeters).
+b = ScorGetGripper;
+w = 15.1;
+d = ScorGetGripperOffset;
+H_g2e = Ty(b/2)*Tx(w/2 + 29.2)*Tz(d + 22.4)*Ry(-pi/2)*Rx(pi/2);
+
+if debugON
+    ScorSimSetGripper(sim,b);
+    hg_g2e = triad('Scale',50,'LineWidth',2,'Parent',sim.Frames(6),...
+        'AxisLabels',{'x_{g}','y_{g}','z_{g}'},'Matrix',H_g2e);
+end
+
+% Prompt user
+UserPrompt(...
+    {'Hold checkerboard!'},...
+    'Remove checkerboard', icon);
+
+ScorSetGripper('Open');
+ScorWaitForMove;
+
+% Move the robot out of the field of view
+ScorSetDeltaBSEPR([pi/2,0,0,0,0]);
+ScorWaitForMove;
+end
+
+% -------------------------------------------------------------------------
+
+function imageNames_Hand = getImages_Handheld(prv,fileBase_Hand,pathName,n)
+
+global icon
+
+% Prompt user
+UserPrompt(...
+    {'Collect handheld',...
+    'calibration images...'},...
+    'Handheld calibration', icon);
+
+fprintf('\n--> Capture unique images of checkerboard in hand.\n');
+
+[~,imageNames_Hand] = getCalibrationImages(prv,fileBase_Hand,pathName,n);
+
+end
+
+% -------------------------------------------------------------------------
+
+function imageNames_Table = getImages_Table(prv,fileBase_Table,pathName,n)
+
+global icon
+
+% Prompt user
+UserPrompt(...
+    {'Place checkerboard on',...
+    'the table within the',...
+    'camera FOV...'},...
+    'Table calibration', icon);
+
+fprintf('\n--> Capture image of checkerboard on the table.\n');
+
+[~,imageNames_Table] = getCalibrationImages(prv,fileBase_Table,pathName,n);
+
+end
+
+% -------------------------------------------------------------------------
+
+function [imageNames,imageFileNames] = combineImages(pathName, imageNames_ScorBot, imageNames_Hand, imageNames_Table)
+
+imageNames = [imageNames_ScorBot; imageNames_Hand; imageNames_Table];
+
+imageFileNames = {};
+for ii = 1:numel(imageNames)
+    imageFileNames{ii} = fullfile(pathName,imageNames{ii});
+end
+
+end
+
+% -------------------------------------------------------------------------
+
+function [imageFileNames,cameraParams,estimationErrors,boardSize] = calibrateCamera(imageFileNames,squareSize)
+
+% Detect checkerboards in images
+[imagePoints, boardSize, imagesUsed] = detectCheckerboardPoints(imageFileNames);
+% Down-sample images
+imageFileNames = imageFileNames(imagesUsed);
+
+% Read the first image to obtain image size
+originalImage = imread(imageFileNames{1});
+[mrows, ncols, ~] = size(originalImage);
+
+% Generate world coordinates of the corners of the squares
+worldPoints = generateCheckerboardPoints(boardSize, squareSize);
+
+% Calibrate the camera
+[cameraParams, imagesUsed, estimationErrors] = estimateCameraParameters(imagePoints, worldPoints, ...
+    'EstimateSkew', false, 'EstimateTangentialDistortion', false, ...
+    'NumRadialDistortionCoefficients', 2, 'WorldUnits', 'millimeters', ...
+    'InitialIntrinsicMatrix', [], 'InitialRadialDistortion', [], ...
+    'ImageSize', [mrows, ncols]);
+% Down-sample images
+imageFileNames = imageFileNames(imagesUsed);
+
+end
+
+% -------------------------------------------------------------------------
 
 function UserPrompt(msg,ttl,icon)
 
