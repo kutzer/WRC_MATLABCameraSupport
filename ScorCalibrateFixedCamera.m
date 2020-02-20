@@ -1,4 +1,4 @@
-function [A_c2m,H_c2o,H_t2o] = ScorCalibrateFixedCamera(prv)
+function [A_c2m,H_c2o,H_t2o] = ScorCalibrateFixedCamera(varargin)
 % SCORCALIBRATEFIXEDCAMERA calculates the camera intrinsics and useful
 % extrinsic matrices
 %   [A_c2m,H_o2c,H_t2o] = SCORCALIBRATEFIXEDCAMERA(prv) takes a camera
@@ -7,21 +7,21 @@ function [A_c2m,H_c2o,H_t2o] = ScorCalibrateFixedCamera(prv)
 %       H_c2o - pose of camera frame relative to the ScorBot base frame.
 %       H_t2o - pose of the "table" frame relative to the ScorBot base frame.
 %
+%   [A_c2m,H_o2c,H_t2o] = SCORCALIBRATEFIXEDCAMERA prompts the user to
+%   select the folder associated with a previously run calibration, and
+%   returns the values associated with the calibration.
+%
+%   [A_c2m,H_o2c,H_t2o] = SCORCALIBRATEFIXEDCAMERA(foldername) loads a
+%   previously run calibration from a specified folder and returns the
+%   values associated with that calibration.
+%
 %   M. Kutzer, 06Feb2020, USNA
 
+% Updates
+%   20Feb2020 - Updated to correct table/grid offset
+%   20Feb2020 - Revised to allow multiple input types
+
 global debugON sim icon
-
-%% Adjust preview position
-prvFIG = getParentFigure(prv);
-set(prvFIG,'Units','Normalized');
-
-pos = get(prvFIG,'Position');
-dpos = 0.005;   % Distance from side of screen
-wpos = 0.030;   % Window height 
-pos(1) = dpos;
-pos(2) = 1-(pos(4) + dpos + wpos);
-
-set(prvFIG,'Position',pos);
 
 %% Set debug flag
 debugON = true;
@@ -32,13 +32,88 @@ if debugON
     for i = 1:5
         hideTriad( sim.Frames(i) );
     end
-    
-    figure(prvFIG);
 end
 
+%% Define filename to save calibration variables
+var_filename = 'CalibrationParameters.mat';
+
+%% Define calibration foldername
+% TODO - add time-stamped calibration foldername
+pathName = 'ScorBot Fixed Camera Calibration';
+
 %% Check input(s)
-if ~ishandle(prv)
-    error('The input to this function must be a valid camera or webcam preview.');
+if nargin < 1
+    % Prompt user to select directory
+    foldername = uigetdir([],'Select Calibration Folder');
+    % Check if user has cancelled action
+    if foldername == 0
+        A_c2m = [];
+        H_c2m = [];
+        H_t2o = [];
+        warning('No folder was selected.');
+        return;
+    end
+else
+    % Check if input is
+    if ~ishandle(varargin{1})
+        % -> Not a handle
+        %error('The input to this function must be a valid camera or webcam preview.');
+        foldername = varargin{1};
+        prv = [];
+    else
+        % -> A handle
+        foldername = 0;
+        prv = varargin{1};
+    end
+end
+
+% Check if directory is provided
+if ischar(foldername)
+    if isfolder(foldername)
+        
+        load( fullfile(foldername,var_filename) );
+        
+        if debugON
+            hg_cam = drawDFKCam;
+            set(hg_cam,'Matrix',H_c2o,'Parent',sim.Frames(1));
+            
+            for i = 1:size(cameraParams.RotationMatrices,3)
+                H_g2c{i} = ...
+                    [cameraParams.RotationMatrices(:,:,i).',...
+                    cameraParams.TranslationVectors(i,:).';...
+                    0,0,0,1];
+            end
+            
+            for i = 1:size(cameraParams.RotationMatrices,3)
+                switch i
+                    case idx_ScorBot
+                        squareColors = {'g',[0.5,0.5,0.5]};
+                    case idx_Table
+                        squareColors = {'r',[0.5,0.5,0.5]};
+                    otherwise
+                        squareColors = {'k','w'};
+                end
+
+                hg_cb(i) = plotCheckerboard(boardSize,squareSize,squareColors);
+                set(hg_cb(i),'Parent',hg_cam,'Matrix',H_g2c{i});
+                
+                hg_t2o = triad('Scale',50,'LineWidth',2,'Parent',sim.Frames(1),...
+                    'AxisLabels',{'x_{t}','y_{t}','z_{t}'},'Matrix',H_t2o);
+                axis(sim.Axes,'tight');
+                
+                ScorSimSetPose(sim,H_e2o);
+                
+                ScorSimSetGripper(sim,b);
+                hg_g2e = triad('Scale',50,'LineWidth',2,'Parent',sim.Frames(6),...
+                    'AxisLabels',{'x_{g}','y_{g}','z_{g}'},'Matrix',H_g2e);
+            end
+        end
+        
+        return;
+        
+    else
+        error('Input must be a valid preview object or folder.');
+    end
 end
 
 switch lower( prv.Type )
@@ -52,9 +127,21 @@ if ~ScorIsReady
     error('ScorBot must be initialized and homed before running this function.');
 end
 
-%% Define calibration foldername
-% TODO - add time-stamped calibration foldername
-pathName = 'ScorBot Fixed Camera Calibration';
+%% Adjust preview position
+prvFIG = getParentFigure(prv);
+set(prvFIG,'Units','Normalized');
+
+pos = get(prvFIG,'Position');
+dpos = 0.005;   % Distance from side of screen
+wpos = 0.030;   % Window height
+pos(1) = dpos;
+pos(2) = 1-(pos(4) + dpos + wpos);
+
+set(prvFIG,'Position',pos);
+
+figure(prvFIG);
+
+%% Load scorbot icon
 icon = imread('Icon_ScorBot.png');
 
 %% Take calibration images
@@ -150,12 +237,13 @@ H_c2o = H_e2o*H_g2e*( H_g2c{idx_ScorBot(1)} )^(-1);
 
 if debugON
     set(hg_cam,'Matrix',H_c2o,'Parent',sim.Frames(1));
+    delete(fig);
 end
 
 %% Calculate H_t2c
 fprintf('TABLE Image - "%s"\n',imageFileNames{idx_Table});
 % TODO - consider multiple transforms (meanSE)
-H_t2g = Tz(b)*Tx(pi);
+H_t2g = Tz(b)*Rx(pi);
 
 H_t2c = H_g2c{idx_Table(1)}*H_t2g;
 H_t2o = H_c2o*H_t2c;
@@ -182,8 +270,10 @@ undistortedImage = undistortImage(originalImage, cameraParams);
 %}
 
 %% Save outputs
-var_filename = fullfile(pathName,'CalibrationParameters.mat');
-save(var_filename,'A_c2m','H_c2o','H_t2o','imageFileNames','idx_Table','idx_ScorBot','estimationErrors','cameraParams','b','w','d');
+var_filename = fullfile(pathName,var_filename);
+save(var_filename,'A_c2m','H_c2o','H_t2o','H_e2o','H_g2e','b','w','d',...
+    'imageFileNames','idx_Table','idx_ScorBot',...
+    'cameraParams','estimationErrors','boardSize','squareSize');
 
 end
 
