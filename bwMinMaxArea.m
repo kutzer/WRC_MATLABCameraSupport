@@ -18,12 +18,16 @@ function [bwOut,varargout] = bwMinMaxArea(bwIn,minArea,maxArea,conn)
 %
 %   M. Kutzer, C. Doherty, & J. Dupaix, 30Jan2020, USNA
 
+% Updates
+%   27Feb2020 - Replaced binMinArea with bwMinArea.
+
+%% Check input(s) and set defaults
 narginchk(3,4)
 if nargin < 4
     conn = 8;
 end
 
-% Label connected components
+%% Label connected components
 lbl = bwlabel(bwIn,conn);
 
 % Calculate area of each connected component
@@ -54,7 +58,7 @@ if nargout > 1
         bwMinArea = bwMinArea | lbl == i;
     end
     % Package output
-    varargout{1} = binMinArea;
+    varargout{1} = bwMinArea;
 end
 
 if nargout > 2
