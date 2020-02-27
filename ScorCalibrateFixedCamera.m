@@ -1,4 +1,4 @@
-function [A_c2m,H_c2o,H_t2o] = ScorCalibrateFixedCamera(varargin)
+function [A_c2m,H_c2o,H_t2o,cameraParams] = ScorCalibrateFixedCamera(varargin)
 % SCORCALIBRATEFIXEDCAMERA calculates the camera intrinsics and useful
 % extrinsic matrices
 %   [A_c2m,H_o2c,H_t2o] = SCORCALIBRATEFIXEDCAMERA(prv) takes a camera
@@ -15,11 +15,18 @@ function [A_c2m,H_c2o,H_t2o] = ScorCalibrateFixedCamera(varargin)
 %   previously run calibration from a specified folder and returns the
 %   values associated with that calibration.
 %
+%   [A_c2m,H_c2o,H_t2o,cameraParams] = ScorCalibrateFixedCamera(___) also
+%   returns the camera parameters returned by the camera calibrator. This
+%   can be useful if you need to undistort images or points:
+%       undistorted_im = undistortImage(im,cameraParams)
+%       undistortedPoints = undistortPoints(points, cameraParams)
+%
 %   M. Kutzer, 06Feb2020, USNA
 
 % Updates
 %   20Feb2020 - Updated to correct table/grid offset
 %   20Feb2020 - Revised to allow multiple input types
+%   27Feb2020 - Revised to include camera parameters as an optional output
 
 global debugON sim icon
 
@@ -126,6 +133,10 @@ end
 if ~ScorIsReady
     error('ScorBot must be initialized and homed before running this function.');
 end
+
+%% Adjust ScorBot Speed
+ScorBot_Speed = ScorGetSpeed;
+ScorSetSpeed(100);
 
 %% Adjust preview position
 prvFIG = getParentFigure(prv);
@@ -268,6 +279,9 @@ displayErrors(estimationErrors, cameraParams);
 % For example, you can use the calibration data to remove effects of lens distortion.
 undistortedImage = undistortImage(originalImage, cameraParams);
 %}
+
+%% Update speed
+ScorSetSpeed(ScorBot_Speed);
 
 %% Save outputs
 var_filename = fullfile(pathName,var_filename);
