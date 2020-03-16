@@ -1,15 +1,26 @@
-function classifierDataFolder = getClassifierImages(prv,W,idx,n)
+function classifierDataFolder = getClassifierImages(prv,W,idx,n,fnameBase)
 % GETCLASSIFIERIMAGES takes a series of images for object classification.
-%   classifierDataFolder = getClassifierImages(prv,W,idx,n)
+%   classifierDataFolder = GETCLASSIFIERIMAGES(prv,W,idx,n)
+%
+%   classifierDataFolder = GETCLASSIFIERIMAGES(prv,W,idx,n,fnameBase)
 %
 %   M. Kutzer, 27Feb2017, USNA
 
 % Updates
 %   16Mar2020 - Updated to use preview object instead of camera object.
 %   16Mar2020 - Updated to add line feed & image number in pop-up.
-%% Get classifier data
+%   16Mar2020 - Updated to allow data folder name changes.
+
+%% Set defaults
 % Define folder name
-classifierDataFolder = sprintf('Classifier Data, %s',W{idx});
+if nargin < 5
+    classifierDataFolder = sprintf('Classifier Data, %s',W{idx});
+else
+    classifierDataFolder = sprintf('%s, %s',fnameBase,W{idx});
+end
+
+%% Get classifier data
+
 % Create directory if it doesn't exist
 if ~isfolder(classifierDataFolder)
     mkdir(classifierDataFolder);
