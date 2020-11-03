@@ -1,18 +1,20 @@
-function installPlottingToolbox(replaceExisting)
-% INSTALLPLOTTINGTOOLBOX installs Plotting Toolbox for MATLAB.
-%   INSTALLPLOTTINGTOOLBOX installs Plotting Toolbox into the following 
-%   locations:
-%                        Source: Destination
-%     PlottingToolboxFunctions: matlabroot\toolbox\plotting
-%       PlottingToolboxSupport: matlabroot\toolbox\plotting\PlottingToolboxSupport 
+function installWRC_MATLABCameraSupport(replaceExisting)
+% INSTALLWRC_MATLABCAMERASUPPORT installs WRC MATLAB Camera Support for
+% MATLAB.
+%   INSTALLWRC_MATLABCAMERASUPPORT installs WRC MATLAB Camera Support into 
+%   the following locations:
+%                             Source: Destination
+%   WRC_MATLABCameraSupportFunctions: matlabroot\toolbox\wrc_matlabcamera
 %
-%   INSTALLPLOTTINGTOOLBOX(true) installs Plotting Toolbox regardless of
-%   whether a copy of the Plotting toolbox exists in the MATLAB root.
+%   INSTALLWRC_MATLABCAMERASUPPORT(true) installs WRC MATLAB Camera Support
+%   regardless of whether a copy of the WRC MATLAB Camera Support exists 
+%   in the MATLAB root.
 %
-%   INSTALLPLOTTINGTOOLBOX(false) installs Plotting Toolbox only if no copy 
-%   of the Plotting toolbox exists in the MATLAB root.
+%   INSTALLWRC_MATLABCAMERASUPPORT(false) installs WRC MATLAB Camera 
+%   Support only if no copy of the WRC MATLAB Camera Support exists in the 
+%   MATLAB root.
 %
-%   M. Kutzer 17Feb2016, USNA
+%   M. Kutzer 03Nov2020, USNA
 
 % Updates
 
@@ -20,7 +22,7 @@ function installPlottingToolbox(replaceExisting)
 % possible.
 
 %% Assign tool/toolbox specific parameters
-dirName = 'plotting';
+dirName = 'wrc_matlabcamera';
 
 %% Check inputs
 if nargin == 0
@@ -43,7 +45,7 @@ if isToolbox == 7
     % Apply replaceExisting argument
     if isempty(replaceExisting)
         choice = questdlg(sprintf(...
-            ['MATLAB Root already contains the Plotting Toolbox.\n',...
+            ['MATLAB Root already contains the WRC MATLAB Camera Support.\n',...
             'Would you like to replace the existing toolbox?']),...
             'Yes','No');
     elseif replaceExisting
@@ -57,14 +59,14 @@ if isToolbox == 7
             rmpath(toolboxRoot);
             [isRemoved, msg, msgID] = rmdir(toolboxRoot,'s');
             if isRemoved
-                fprintf('Previous version of Plotting Toolbox removed successfully.\n');
+                fprintf('Previous version of WRC MATLAB Camera Support removed successfully.\n');
             else
-                fprintf('Failed to remove old Plotting Toolbox folder:\n\t"%s"\n',toolboxRoot);
+                fprintf('Failed to remove old WRC MATLAB Camera Support folder:\n\t"%s"\n',toolboxRoot);
                 fprintf(adminSolution);
                 error(msgID,msg);
             end
         case 'No'
-            fprintf('Plotting Toolbox currently exists, installation cancelled.\n');
+            fprintf('WRC MATLAB Camera Support currently exists, installation cancelled.\n');
             return
         case 'Cancel'
             fprintf('Action cancelled.\n');
@@ -74,36 +76,36 @@ if isToolbox == 7
     end
 end
 
-%% Create Scorbot Toolbox Path
+%% Create Toolbox Path
 [isDir,msg,msgID] = mkdir(toolboxRoot);
 if isDir
-    fprintf('Plotting toolbox folder created successfully:\n\t"%s"\n',toolboxRoot);
+    fprintf('WRC MATLAB Camera Support folder created successfully:\n\t"%s"\n',toolboxRoot);
 else
-    fprintf('Failed to create Scorbot Toolbox folder:\n\t"%s"\n',toolboxRoot);
+    fprintf('Failed to create toolbox folder:\n\t"%s"\n',toolboxRoot);
     fprintf(adminSolution);
     error(msgID,msg);
 end
 
 %% Migrate toolbox folder contents
-toolboxContent = 'PlottingToolboxFunctions';
+toolboxContent = 'WRC_MATLABCameraSupportFunctions';
 if ~isdir(toolboxContent)
     error(sprintf(...
-        ['Change your working directory to the location of "installPlottingToolbox.m".\n',...
+        ['Change your working directory to the location of "installWRC_MATLABCameraSupport.m".\n',...
          '\n',...
          'If this problem persists:\n',...
-         '\t(1) Unzip your original download of "PlottingToolbox" into a new directory\n',...
+         '\t(1) Unzip your original download of "WRC_MATLABCameraSupport" into a new directory\n',...
          '\t(2) Open a new instance of MATLAB "as administrator"\n',...
          '\t\t(a) Locate MATLAB shortcut\n',...
          '\t\t(b) Right click\n',...
          '\t\t(c) Select "Run as administrator"\n',...
-         '\t(3) Change your "working directory" to the location of "installPlottingToolbox.m"\n',...
-         '\t(4) Enter "installPlottingToolbox" (without quotes) into the command window\n',...
+         '\t(3) Change your "working directory" to the location of "installWRC_MATLABCameraSupport.m"\n',...
+         '\t(4) Enter "installWRC_MATLABCameraSupport" (without quotes) into the command window\n',...
          '\t(5) Press Enter.']));
 end
 files = dir(toolboxContent);
-wb = waitbar(0,'Copying Plotting Toolbox toolbox contents...');
+wb = waitbar(0,'Copying WRC MATLAB Camera Support toolbox contents...');
 n = numel(files);
-fprintf('Copying Plotting Toolbox contents:\n');
+fprintf('Copying WRC MATLAB Camera Support contents:\n');
 for i = 1:n
     % source file location
     source = fullfile(toolboxContent,files(i).name);
