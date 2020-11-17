@@ -1,12 +1,13 @@
 function phi = bwPrincipalAngle(imBin)
 % BWPRINCIPALANGLE Calculate the principal angle given a binary image.
-%   [r,c] = BWPRINCIPALANGLE(imBin) returns the principal angle (phi)
+%   phi = BWPRINCIPALANGLE(imBin) returns the principal angle (phi)
 %   given a binary image.
 %
 %   M. Kutzer, 14Nov2017, USNA
 
 % Updates
 %   29Nov2017 - Corrected calculation of phi
+%   17Nov2020 - Corrected documentation
 %% Check inputs
 % Check for single input
 narginchk(1,1);
