@@ -8,6 +8,7 @@ function phi = bwPrincipalAngle(imBin)
 % Updates
 %   29Nov2017 - Corrected calculation of phi
 %   17Nov2020 - Corrected documentation
+%   19Nov2020 - Corrected equation
 %% Check inputs
 % Check for single input
 narginchk(1,1);
@@ -21,4 +22,4 @@ U11 = bwCentralMoment(imBin,1,1);
 U20 = bwCentralMoment(imBin,2,0); 
 U02 = bwCentralMoment(imBin,0,2);
 
-phi = 1/2*atan2(2*U11,U20-U02);
+phi = (1/2) * atan2(2*U11,U20-U02);
