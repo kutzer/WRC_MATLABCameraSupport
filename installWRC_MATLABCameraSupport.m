@@ -17,6 +17,7 @@ function installWRC_MATLABCameraSupport(replaceExisting)
 %   M. Kutzer 03Nov2020, USNA
 
 % Updates
+%   08Jan2021 - Updated ToolboxUpdate & questdlg
 
 % TODO - Allow users to create a local version if admin rights are not
 % possible.
@@ -46,8 +47,9 @@ if isToolbox == 7
     if isempty(replaceExisting)
         choice = questdlg(sprintf(...
             ['MATLAB Root already contains the WRC MATLAB Camera Support.\n',...
-            'Would you like to replace the existing toolbox?']),...
-            'Yes','No');
+            'Would you like to replace the existing support functions?']),...
+            'Replace Existing WRC Camera Support Functions','Yes','No','Cancel','Yes');
+
     elseif replaceExisting
         choice = 'Yes';
     else
