@@ -42,6 +42,7 @@ function [cam,varargout] = initCamera
 %   28Jan2020 - Updated to check for a single output (MIDN C.J. Witte)
 %   28Jan2020 - Updated documentation for handles output
 %   28Jan2020 - Added callback function to preview
+%   08Mar2021 - Turned warnings off/on around imaqhwinfo call
 
 %% Declare persistent variable to declare new camera names
 % TODO - remove persistent and replace with device selection
@@ -53,7 +54,9 @@ end
 
 %% Check for installed adapters
 goodAdaptor = false;
+warning off
 info = imaqhwinfo;
+warning on
 for i = 1:numel(info.InstalledAdaptors)
     switch lower(info.InstalledAdaptors{i})
         case 'winvideo'

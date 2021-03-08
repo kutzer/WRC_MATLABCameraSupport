@@ -23,6 +23,10 @@ function varargout = getCalibrationImages(prv,varargin)
 %   images with the base image name specified in "imageName" and an image 
 %   folder name specified in "imageFolder".
 %
+%   getCalibrationImages(prv,imageName,imageFolder,n,dt) allows the user to
+%   specify an approximate fixed time interval (in seconds) between each 
+%   calibration image allowing for hands-free operation.
+%
 %   imageFolder = getCalibrationImages(___) returns the full path to the
 %   imageFolder.
 %
@@ -42,15 +46,16 @@ function varargout = getCalibrationImages(prv,varargin)
 %   06Feb2020 - Added leading zeros to camera and image numbering in
 %               filenames. 
 %   06Feb2020 - Updated to also return image names.
-%
+%   08Mar2021 - Updated to include fixed time interval option.
 
 %% Parse and check inputs
 % Check number of inputs
-narginchk(1,4);
+narginchk(1,5);
 % Set default values
 imageName = [];
 imageFolder = [];
 n = [];
+dt = [];
 % Check videoinput object
 goodPrv = true;
 for i = 1:numel(prv)
@@ -66,11 +71,39 @@ for i = 1:numel(prv)
             break
     end
 end
+
 if ~goodPrv
     error('getCal:BadPrv',...
         ['Specified live preview must be a valid image graphics handle. Use:\n',...
         ' -> [~,prv] = initCamera; or \n',...
         ' -> [~,prv] = initWebcam;']);
+else
+    % Get preview axis
+    mom = prv;
+    isAxes = false;
+    while ~isAxes
+        mom = get(mom,'Parent');
+        switch lower( get(mom,'Type') )
+            case 'axes'
+                isAxes = true;
+                prvAxes = mom;
+        end
+    end
+    % Get preview figure
+    mom = prvAxes;
+    isFigure = false;
+    while ~isFigure
+        mom = get(mom,'Parent');
+        switch lower( get(mom,'Type') )
+            case 'figure'
+                isFigure = true;
+                prvFig = mom;
+        end
+    end
+    set(prvFig,'Units','Normalized');
+    pp = get(prvFig,'Position');
+    ppNew = [0,1-pp(4)-0.025,pp(3),pp(4)];
+    set(prvFig,'Position',ppNew);
 end
 
 % Parse inputs
@@ -85,6 +118,12 @@ if nargin == 4
     imageName = varargin{1};
     imageFolder = varargin{2};
     n = varargin{3};
+end
+if nargin == 5
+    imageName = varargin{1};
+    imageFolder = varargin{2};
+    n = varargin{3};
+    dt = varargin{4};
 end
 
 % Set defaults
@@ -120,18 +159,50 @@ end
 
 %% Get images
 fmt = 'png';
+
+if ~isempty(dt)
+    fig = figure('Name','Grab Image','MenuBar','none','NumberTitle','off',...
+        'Resize','off','Scrollable','off','ToolBar','none',...
+        'CloseRequestFcn',[],'Units','Points','Position',[0,0,600,120]);
+    centerfig(fig);
+    axs = axes('Parent',fig,'Units','Normalized','Visible','off',...
+        'Position',[0,0,1,1],'XLim',[-1,1],'YLim',[-1,1]);
+    
+    msg{1} = sprintf('Place checkerboard in camera FOV (%2d of %2d);',i,n);
+    msg{2} = sprintf('Taking snapshot in %2d',ceil(dt));
+    txt = text(0,0,msg,'Parent',axs,'HorizontalAlignment','Center',...
+        'VerticalAlignment','Middle','FontSize',26);
+end
+
 for i = 1:n
     % Status update
     fprintf('Getting calibration image %d of %d...',i,n);
     
-    if n > 1
-        msg = sprintf('Place checkerboard in camera FOV (%d of %d)...[Enter to Continue]',i,n);
-        % Wait for user
-        uiwait(...
-            msgbox(msg,'Grab Image')...
-            );
+    figure(prvFig);
+    if isempty(dt)
+        if n > 1
+            msg = sprintf('Place checkerboard in camera FOV (%d of %d)...[Enter to Continue]',i,n);
+            % Wait for user
+            uiwait(...
+                msgbox(msg,'Grab Image')...
+                );
+        else
+            fprintf('<SINGLE IMAGE, UIWAIT>...');
+        end
     else
-        fprintf('<SINGLE IMAGE, UIWAIT>...');
+        t = 0;
+        t0 = tic;
+        while t < dt
+            figure(fig);
+            t = toc(t0);
+            msg{2} = sprintf('Taking snapshot in %2d...',round(dt - t));
+            set(txt,'String',msg);
+            drawnow;
+        end
+        msg{2} = sprintf('HOLD STILL, Taking snapshot!!!',0);
+        set(txt,'String',msg);
+        drawnow
+        pause(0.5);
     end
     
     % Grab image(s)
@@ -154,6 +225,10 @@ for i = 1:n
     end
     % Status update
     fprintf('[Complete]\n');
+end
+
+if ~isempty(dt)
+    delete(fig);
 end
 
 %% Package output(s)
