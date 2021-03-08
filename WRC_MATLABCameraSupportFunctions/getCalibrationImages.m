@@ -195,6 +195,7 @@ for i = 1:n
         while t < dt
             figure(fig);
             t = toc(t0);
+            msg{1} = sprintf('Place checkerboard in camera FOV (%2d of %2d);',i,n);
             msg{2} = sprintf('Taking snapshot in %2d...',round(dt - t));
             set(txt,'String',msg);
             drawnow;
@@ -202,13 +203,18 @@ for i = 1:n
         msg{2} = sprintf('HOLD STILL, Taking snapshot!!!',0);
         set(txt,'String',msg);
         drawnow
-        pause(0.5);
     end
     
     % Grab image(s)
     drawnow
     for j = 1:numel(prv)
         im{j} = get(prv(j),'CData');
+    end
+    if ~isempty(dt)
+        msg{1} = sprintf('Image(s) Captured!');
+        msg{2} = sprintf('Saving Image(s)...');
+        set(txt,'String',msg);
+        drawnow
     end
     % Define image filename(s)
     if numel(im) == 1
