@@ -1,17 +1,39 @@
-function hg = drawDFKCam
+function hg = drawDFKCam(varargin)
 % DRAWDFKCAM creates a patch object representing a DFK 21BU04.H USB 2.0 
 % Color Industrial Camera and lens assembly that is the child of an assumed
 % camera frame visualized using a triad frame representation (see triad.m).
 %   hg = DRAWDFKCAM returns the hgtransform object associated with the
 %   camera frame.
 %
+%   hg = DRAWDFKCAM(axs) allows the user to specify the parent object (axs)
+%
+%   hg = DRAWDFKCAM(axs,H_c2a) allows the user to specify the parent object
+%   (axs) and the transformation relating the camera frame to the parent
+%   coordinate frame.
+%
 %   M. Kutzer, 30Jan2016, USNA
 
 % Updates
 %   18Jan2017 - Updated documentation
 
+%% Parse input(s)
+switch nargin
+    case 0
+        axs = gca;
+        H_c2a = eye(4);
+    case 1
+        axs = varargin{1};
+        H_c2a = eye(4);
+    case 2
+        axs = varargin{1};
+        H_c2a = varargin{2};
+    otherwise
+        error('Too many inputs specified.');
+end
+
 %% Define camera frame
-hg = triad('Scale',60,'LineWidth',2,'Tag','CameraFrame');
+hg = triad('Scale',60,'LineWidth',2,'Tag','CameraFrame','Parent',axs,...
+    'Matrix',H_c2a);
 
 %% Create camera body
 verts = [0,0,0;... % vertex 1

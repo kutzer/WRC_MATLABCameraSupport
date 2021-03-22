@@ -17,9 +17,9 @@ function varargout = WRC_MATLABCameraSupportVer
 %   08Jan2021 - Updated ToolboxUpdate
 
 A.Name = 'WRC MATLAB Camera Support';
-A.Version = '1.0.1';
+A.Version = '1.0.2';
 A.Release = '(R2019b)';
-A.Date = '08-Jan-2021';
+A.Date = '22-Mar-2021';
 A.URLVer = 1;
 
 msg{1} = sprintf('MATLAB %s Version: %s %s',A.Name, A.Version, A.Release);
