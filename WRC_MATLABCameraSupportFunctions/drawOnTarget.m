@@ -75,6 +75,6 @@ while true
     set(plt,'XData',X_t(1,:),'YData',X_t(2,:),'ZData',X_t(3,:))
     drawnow;
 end
-
+title(axs,' ');
 
 end
