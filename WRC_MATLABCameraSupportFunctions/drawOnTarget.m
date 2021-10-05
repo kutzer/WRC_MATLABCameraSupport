@@ -2,6 +2,13 @@ function X_t = drawOnTarget
 % DRAWONTARGET creates a set of points associated with a target drawing.
 %   X_t = DRAWONTARGET
 %
+%   Use instructions:
+%       (1) Create new points in the drawing using the left mouse button
+%       (2) Clicking the right mouse button will create a transition to a
+%           new drawing by adding a +20mm z-offset
+%       (3) Clicking the center mouse button (scroll wheel) will exit the
+%           drawing interface and return the points
+%
 %   Input(s)
 %
 %   Output(s)
