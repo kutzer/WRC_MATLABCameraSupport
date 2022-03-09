@@ -159,7 +159,12 @@ startNew = false;
 plt = plot(axs,0,0,'o-','LineWidth',2);
 while true
     axes(axs);
-    [x,y,b] = ginput(1);
+    try
+        [x,y,b] = ginput(1);
+    catch
+        error('Use the center mouse button to stop drawing.')
+    end
+
     switch b
         case 1
             % Add point
