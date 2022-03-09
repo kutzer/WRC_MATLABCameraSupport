@@ -15,11 +15,13 @@ function varargout = WRC_MATLABCameraSupportVer
 
 % Updates
 %   08Jan2021 - Updated ToolboxUpdate
+%   09Mar2022 - Added functions to drawOnTarget, added USNA and WRC stock
+%               images
 
 A.Name = 'WRC MATLAB Camera Support';
-A.Version = '1.0.2';
+A.Version = '1.0.3';
 A.Release = '(R2019b)';
-A.Date = '22-Mar-2021';
+A.Date = '09-Mar-2022';
 A.URLVer = 1;
 
 msg{1} = sprintf('MATLAB %s Version: %s %s',A.Name, A.Version, A.Release);
