@@ -17,9 +17,11 @@ function varargout = WRC_MATLABCameraSupportVer
 %   08Jan2021 - Updated ToolboxUpdate
 %   09Mar2022 - Added functions to drawOnTarget, added USNA and WRC stock
 %               images
+%   10Mar2022 - Added UR3e fixed camera calibration
+%   10Mar2022 - Added recoverPreview* functions
 
 A.Name = 'WRC MATLAB Camera Support';
-A.Version = '1.0.4';
+A.Version = '1.0.5';
 A.Release = '(R2019b)';
 A.Date = '10-Mar-2022';
 A.URLVer = 1;

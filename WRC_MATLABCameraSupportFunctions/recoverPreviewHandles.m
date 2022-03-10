@@ -20,6 +20,10 @@ function pHandles = recoverPreviewHandles(prv)
 %               *.Resolution      - Text handle that contains resolution info
 %               *.Time            - Text handle that contains the time stamp
 %
+%       Note: TriggerInfo will be empty for webcam previews
+%
+%   See also initCamera initWebcam recoverPreviewTime
+%
 %   M. Kutzer, 10Mar2022, USNA
 
 %% Check input(s)
