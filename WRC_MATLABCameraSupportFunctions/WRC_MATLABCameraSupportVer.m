@@ -19,9 +19,9 @@ function varargout = WRC_MATLABCameraSupportVer
 %               images
 
 A.Name = 'WRC MATLAB Camera Support';
-A.Version = '1.0.3';
+A.Version = '1.0.4';
 A.Release = '(R2019b)';
-A.Date = '09-Mar-2022';
+A.Date = '10-Mar-2022';
 A.URLVer = 1;
 
 msg{1} = sprintf('MATLAB %s Version: %s %s',A.Name, A.Version, A.Release);
