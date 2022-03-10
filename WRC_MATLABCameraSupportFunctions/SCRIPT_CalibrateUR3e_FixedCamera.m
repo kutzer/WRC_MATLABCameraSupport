@@ -66,12 +66,16 @@ while true
             uiwait(f);
             ur = URQt('UR3e');
             ur.Initialize;
+            break
         otherwise
             warning('Please select a valid response.');
     end
+
 end
 
 %% Initialize simulation
+ur.FlushBuffer;
+
 sim = URsim;
 sim.Initialize('UR3');
 hFrames = {...
