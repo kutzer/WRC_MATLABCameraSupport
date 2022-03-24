@@ -129,7 +129,9 @@ for i = 1:n
         'Taking Image %d of %d.'],i,n);
     f = msgbox(msg,'Get Handheld Image');
     uiwait(f);
-
+   
+    % Get the image from the preview
+    im = get(prv,'CData');
     % Save the image
     imwrite(im,fullfile(pname,fname),fmt);
 end
@@ -199,7 +201,10 @@ save(fullfile(pname,fnameRobotInfo),...
 cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInfo);
 
 %% Visualize camera
+H_e2o = sim.Pose;
+H_o2a = sim.Frame0;
 H_c2e = cal.H_c2e;
+H_c2a = H_o2a*H_e2o*H_c2e;
 sc = 50;
 cam3D = plotCamera('Parent',sim.Axes,'Location',H_c2a(1:3,4).',...
     'Orientation',H_c2a(1:3,1:3).','Size',sc/2,'Color',[0,0,1]);
