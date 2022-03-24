@@ -288,6 +288,10 @@ for i = 1:numel(cal.H_g2c)
     %   the error results from cameraCalibrator
     X_m = detectCheckerboardPoints(uIm);
     % - Update P_m for undistorted points
+    if nnz(size(P_m(:,:,1)) == size(X_m)) ~= 2
+        % Bad data set! 
+        X_m = nan(size(P_m(:,:,1)));
+    end
     P_m(:,:,i) = X_m;
     % - Format X_m into a homogeneous pixel coordinate
     X_m = X_m.';
@@ -445,8 +449,8 @@ cal.H_c2e = X;
 [tf,msg] = isSE(cal.H_c2e);
 if ~tf
     warning(msg);
-    %fprintf('\tApplying cal.H_e2g = cal.H_e2g*Sz(-1)\n');
-    %cal.H_e2g = cal.H_e2g*Sz(-1);
+    %fprintf('\tApplying cal.H_c2e = cal.H_c2e*Sz(-1)\n');
+    %cal.H_c2e = cal.H_c2e*Sz(-1);
 end
 
 %% Make sure rotation is valid
