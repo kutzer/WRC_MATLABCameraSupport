@@ -32,3 +32,4 @@ end
 
 %% Create GUI figure
 fig = figure('Name',sprintf('%s Editor',device.DeviceName));
+%c = uicontrol(Name,Value) 
