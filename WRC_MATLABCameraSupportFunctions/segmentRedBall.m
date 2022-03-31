@@ -1,4 +1,16 @@
 function bw = segmentRedBall(im)
+% SEGMENTREDBALL thresholds an RGB image and filters the returned binary
+% image.
+%   bw = SEGMENTREDBALL(im)
+%
+%   Input(s)
+%       im - MxNx3 uint8 array representing an RGB color image
+%
+%   Output(s)
+%       bw - MxN binary array with "true" values corresponding to the
+%            segmented pixels of the red ball
+%
+%   M. Kutzer, 28Feb2022, USNA
 
 % Create binary image using color-thresholding
 bw = createRedMask(im);
