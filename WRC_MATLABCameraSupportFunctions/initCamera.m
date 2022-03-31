@@ -141,23 +141,21 @@ if m > 0
 end
 
 %% Check for available formats
-formatIDX = 1; % Use default format if good one is unavailable
+% Get available formats
 formatList = devices.DeviceInfo(camIdx).SupportedFormats;
-formatDefault = 'YUY2_640x480';
-m = numel(formatList);
-% for i = 1:m
-%     switch devices.DeviceInfo(camIdx).SupportedFormats{i}
-%         case formatDefault
-%             formatIDX = i;
-%             break
-%     end
-% end
+% Define "preferred" format
+formatPrefer = 'YUY2_640x480';
+% Define default format
+formatDefault = devices.DeviceInfo(camIdx).DefaultFormat;
 
 % Allow user to select format
-formatIDX = find( contains(formatList,'YUY2_640x480') );
+% -> Define default value in dialog
+formatIDX = find( contains(formatList,formatPrefer) );
 if isempty(formatIDX)
-    formatIDX = m;
+    formatIDX = find( contains(formatList,formatDefault) );
 end
+% -> Prompt user to select format
+drawnow; % Eliminate "Event Dispatch Thread (EDT)" warning 
 [formatIDX,OK] = listdlg('PromptString','Select format:',...
     'SelectionMode','single',...
     'ListString',formatList,'InitialValue',formatIDX);
@@ -176,9 +174,14 @@ callNum = callNum + 1;
 %% Update camera properties
 src_obj = getselectedsource(cam);
 try
+    set(src_obj, 'FrameRate', '15.0000');
+catch
+    warning('Unable to set "FrameRate" to 15 fps.');
+end
+
+try
     set(src_obj, 'ExposureMode', 'manual');
     set(src_obj, 'Exposure', -4);
-    set(src_obj, 'FrameRate', '15.0000');
 catch
     warning('Unable to set "ExposureMode" to manual.');
 end
