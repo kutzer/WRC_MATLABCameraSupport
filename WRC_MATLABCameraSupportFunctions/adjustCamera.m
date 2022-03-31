@@ -96,8 +96,8 @@ for k = 1:n
             switch lower( prop_info{k}.Constraint )
                 case 'bounded'
                     val = ...
-                        (prop_vals{k} - prop_info{k}.ConstraintValue(1))./...
-                        diff(prop_info{k}.ConstraintValue);
+                        double(prop_vals{k} - prop_info{k}.ConstraintValue(1))./...
+                        double(diff(prop_info{k}.ConstraintValue));
                     uiC(k) =  uicontrol(uiP(k),'Style','Slider',...
                         'Units','Normalized','Position',[0.1,0.15,0.8,0.7],...
                         'Tag',prop_names{k},'Value',val);
@@ -150,8 +150,8 @@ end
 
 %% Internal functions
 function applyCallback(hObject,eventdata,cam,src_obj,uiC,prop_info)
-hObject
-eventdata
+% hObject
+% eventdata
 
 if ~isvalid(cam)
     warning('Video input object is not associated with any hardware, try reinitializing.');
@@ -170,12 +170,14 @@ for k = 1:numel(uiC)
     camProp = get(uiC(k),'Tag');
     fprintf('%20s to ',camProp);
     
-    val = get(uiC(k),'Value');
     switch lower( get(uiC(k),'Style') )
         case 'slider'
-            setVal = val*diff(prop_info{k}.ConstraintValue) +...
-                prop_info{k}.ConstraintValue(1);
+            val = get(uiC(k),'Value');
+            setVal = val*double(diff(prop_info{k}.ConstraintValue)) +...
+                double(prop_info{k}.ConstraintValue(1));
+            setVal = round(setVal);
         case 'edit'
+            val = get(uiC(k),'String');
             switch lower( prop_info{k}.Type )
                 case 'integer'
                     setVal = round( str2double(val) );
@@ -184,6 +186,7 @@ for k = 1:numel(uiC)
                     setVal = val;
             end
         case 'popupmenu'
+            val = get(uiC(k),'Value');
             list = get(uiC(k),'String');
             setVal = list{val};
         otherwise
@@ -206,8 +209,8 @@ fprintf('[COMPLETE]\n');
 end
 
 function applyDefault(hObject,eventdata,cam,src_obj,uiC,prop_info,prop_vals)
-hObject
-eventdata
+% hObject
+% eventdata
 
 if ~isvalid(cam)
     warning('Video input object is not associated with any hardware, try reinitializing.');
@@ -229,7 +232,8 @@ for k = 1:numel(uiC)
     setVal = prop_vals{k};
     switch lower( get(uiC(k),'Style') )
         case 'slider'
-            val = (setVal - prop_info{k}.ConstraintValue(1))/diff(prop_info{k}.ConstraintValue);
+            val = double(setVal - prop_info{k}.ConstraintValue(1))/...
+                double(diff(prop_info{k}.ConstraintValue));
             set(uiC(k),'Value',val);
             src_obj.(camProp) = setVal;
         case 'edit'
