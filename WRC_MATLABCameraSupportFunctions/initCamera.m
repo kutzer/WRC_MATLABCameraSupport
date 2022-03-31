@@ -44,7 +44,7 @@ function [cam,varargout] = initCamera
 %   28Jan2020 - Added callback function to preview
 %   08Mar2021 - Turned warnings off/on around imaqhwinfo call
 %   31Mar2022 - Allow user to select the camera format
-
+%   31Mar2022 - drawnow to eliminate "Event Dispatch Thread (EDT)" warning
 %% Declare persistent variable to declare new camera names
 % TODO - remove persistent and replace with device selection
 persistent callNum
@@ -94,6 +94,7 @@ if n > 1
     for i = 1:n
         camList{i} = devices.DeviceInfo(i).DeviceName;
     end
+    drawnow; % Eliminate "Event Dispatch Thread (EDT)" warning
     [camIdx,OK] = listdlg('PromptString','Select camera:',...
         'SelectionMode','single',...
         'ListString',camList);
