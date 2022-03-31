@@ -5,6 +5,8 @@ function [p_m,z_c,ps_m] = propsRedBall(im,A_c2m,r)
 % calculated.
 %   p_m = propsRedBall(im)
 %
+%   [p_m,~,ps_m] = propsRedBall(im)
+%
 %   [p_m,z_c] = propsRedBall(im,A_c2m,r)
 %
 %   [p_m,z_c,ps_m] = propsRedBall(___)
