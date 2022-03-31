@@ -22,9 +22,10 @@ function varargout = WRC_MATLABCameraSupportVer
 %   24Mar2022 - Added UR3e Eye-in-Hand camera calibration
 %   31Mar2022 - Remove partial detections from calibrateUR3e* functions
 %   31Mar2022 - Included red ball segment/props functions
+%   31Mar2022 - Removed initCamera warnings, added adjustCamera GUI
 
 A.Name = 'WRC MATLAB Camera Support';
-A.Version = '1.0.7';
+A.Version = '1.0.8';
 A.Release = '(R2019b)';
 A.Date = '31-Mar-2022';
 A.URLVer = 1;
