@@ -43,6 +43,7 @@ function [cam,varargout] = initCamera
 %   28Jan2020 - Updated documentation for handles output
 %   28Jan2020 - Added callback function to preview
 %   08Mar2021 - Turned warnings off/on around imaqhwinfo call
+%   31Mar2022 - Allow user to select the camera format
 
 %% Declare persistent variable to declare new camera names
 % TODO - remove persistent and replace with device selection
@@ -141,18 +142,31 @@ end
 
 %% Check for available formats
 formatIDX = 1; % Use default format if good one is unavailable
-m = numel(devices.DeviceInfo(camIdx).SupportedFormats);
-for i = 1:m
-    switch devices.DeviceInfo(camIdx).SupportedFormats{i}
-        case 'YUY2_640x480'
-            formatIDX = i;
-            break
-    end
+formatList = devices.DeviceInfo(camIdx).SupportedFormats;
+formatDefault = 'YUY2_640x480';
+m = numel(formatList);
+% for i = 1:m
+%     switch devices.DeviceInfo(camIdx).SupportedFormats{i}
+%         case formatDefault
+%             formatIDX = i;
+%             break
+%     end
+% end
+
+% Allow user to select format
+formatIDX = find( contains(formatList,'YUY2_640x480') );
+if isempty(formatIDX)
+    formatIDX = m;
+end
+[formatIDX,OK] = listdlg('PromptString','Select format:',...
+    'SelectionMode','single',...
+    'ListString',formatList,'InitialValue',formatIDX);
+if ~OK
+    error('No format selected.');
 end
 
 %% Create video input object
-cam = videoinput('winvideo',camIdx,...
-    devices.DeviceInfo(camIdx).SupportedFormats{formatIDX});
+cam = videoinput('winvideo',camIdx,formatList{formatIDX});
 
 %% Setup camera parameters
 set(cam,'ReturnedColorSpace','rgb');
@@ -255,6 +269,7 @@ out = questdlg(...
 switch out
     case 'Yes'
         closepreview(cam);
+        delete(cam);
     case 'No'
         % Bring preview figure to front
         figure(src);
