@@ -19,6 +19,7 @@ function cal = calibrateUR3e_FixedCamera(pname,bname,fnameRobotInfo)
 % Updates
 %   26Jan2022 - Allow user to manually find data set & dewarp image to
 %               match error results with cameraCalibrator
+%   31Mar2022 - Account for partial detections
 
 %% Check inputs
 if nargin < 3
@@ -232,6 +233,13 @@ for i = 1:numel(cal.H_g2c)
     % - We need to detect board points in the *undistorted* image to match
     %   the error results from cameraCalibrator
     X_m = detectCheckerboardPoints(uIm);
+    % - Check & account for partial detections
+    badFig = false;
+    if nnz(size(P_m(:,:,1)) == size(X_m)) ~= 2
+        % Bad data set!
+        X_m = nan(size(P_m(:,:,1)));
+        badFig = true;
+    end
     % - Update P_m for undistorted points
     P_m(:,:,i) = X_m;
     % - Format X_m into a homogeneous pixel coordinate
@@ -303,6 +311,10 @@ for i = 1:numel(cal.H_g2c)
     xlim(axs(i),xx);
     ylim(axs(i),yy);
     
+    % Automatically remove partial detections
+    if badFig
+        delete(fig(i));
+    end
     drawnow
 end
 

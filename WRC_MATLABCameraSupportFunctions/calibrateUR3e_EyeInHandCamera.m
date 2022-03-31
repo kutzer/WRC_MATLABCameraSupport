@@ -18,6 +18,9 @@ function cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInf
 %
 %   M. Kutzer, 24Mar2022, USNA
 
+% Updates
+%   25Mar2022 - Account for partial detections
+
 %% Check inputs
 if nargin < 3
     [fnameRobotInfo,pname] = uigetfile({'*.mat'},'Select calibration data file (e.g. URInfo_*.mat)');
@@ -287,11 +290,14 @@ for i = 1:numel(cal.H_g2c)
     % - We need to detect board points in the *undistorted* image to match
     %   the error results from cameraCalibrator
     X_m = detectCheckerboardPoints(uIm);
-    % - Update P_m for undistorted points
+    % - Check & account for partial detections
+    badFig = false;
     if nnz(size(P_m(:,:,1)) == size(X_m)) ~= 2
-        % Bad data set! 
+        % Bad data set!
         X_m = nan(size(P_m(:,:,1)));
+        badFig = true;
     end
+    % - Update P_m for undistorted points
     P_m(:,:,i) = X_m;
     % - Format X_m into a homogeneous pixel coordinate
     X_m = X_m.';
@@ -362,6 +368,10 @@ for i = 1:numel(cal.H_g2c)
     xlim(axs(i),xx);
     ylim(axs(i),yy);
     
+    % Automatically remove partial detections
+    if badFig
+        delete(fig(i));
+    end
     drawnow
 end
 
