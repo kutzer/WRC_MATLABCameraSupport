@@ -9,6 +9,9 @@ function adjustCamera(cam)
 %
 %   M. Kutzer, 31Mar2022, USNA
 
+% Updates
+%   07Apr2022 - Updated to account for small monitors
+
 debugON = false;
 
 %% Check input(s)
@@ -59,27 +62,40 @@ for k = 1:n
 end
 
 %% Create GUI figure
-hBTN = 40;
-wBTN = 100;
-w0 = 20;
-dw = 300;
-wf = 20;
-h0 = 0;
-dh = 55;
-hf = hBTN + 20;
+hBTN = 40;      % Button height
+wBTN = 100;     % Button width
+w0 = 20;        % Width offset from LHS
+dw = 300;       % Panel width
+wf = 20;        % Width offset from RHS
+h0 = 0;         % Height offset from top of figure
+dh = 55;        % Panel height
+hf = hBTN + 20; % Height offset from bottom of figure
+
+% Define total figure dimensions
 wALL = w0 + dw + wf;
 hALL = h0 + n*dh + hf;
 
+% Get available monitor dimension(s)
+mPos = get(0,'MonitorPositions');
+% Account for small monitor
+%wMAX = min(mPos(:,3));
+hMAX = min(mPos(:,4)) - 80;
+if hALL > hMAX
+    ratio = hMAX/hALL;
+else
+    ratio = 1;
+end
+
 fig = figure('Name',sprintf('%s Property Editor',device.DeviceName),...
     'MenuBar','none','NumberTitle','off',...
-    'Units','Pixels','Position',[0,0,wALL,hALL]);
+    'Units','Pixels','Position',[0,0,wALL,hALL]*ratio);
 centerfig(fig);
 
 prop_vals = {};
 for k = 1:n
     % Set panel with property title
     uiP(k) = uipanel(fig,'Title',prop_names{k},...
-        'Units','Pixels','Position',[w0,h0+(n-k)*dh+hf,dw,sum(dh)]);
+        'Units','Pixels','Position',[w0,h0+(n-k)*dh+hf,dw,sum(dh)]*ratio);
     
     % Set default tag
     switch lower(prop_names{k})
@@ -137,13 +153,13 @@ fcnDefault = @(hObject, eventdata)...
 fcnDelete = @(hObject, eventdata)delete(fig);
 % Define buttons
 uiB(1) = uicontrol(fig,'Style','Pushbutton',...
-    'Units','Pixels','Position',[w0,10,wBTN,hBTN],...
+    'Units','Pixels','Position',[w0,10,wBTN,hBTN]*ratio,...
     'Tag','Apply','String','Apply','Callback',fcnApply);
 uiB(2) = uicontrol(fig,'Style','Pushbutton',...
-    'Units','Pixels','Position',[w0+wBTN+5,10,wBTN,hBTN],...
+    'Units','Pixels','Position',[w0+wBTN+5,10,wBTN,hBTN]*ratio,...
     'Tag','Default','String','Default','Callback',fcnDefault);
 uiB(3) = uicontrol(fig,'Style','Pushbutton',...
-    'Units','Pixels','Position',[w0+2*(wBTN+5),10,wBTN,hBTN],...
+    'Units','Pixels','Position',[w0+2*(wBTN+5),10,wBTN,hBTN]*ratio,...
     'Tag','Exit','String','Exit','Callback',fcnDelete);
 
 end
