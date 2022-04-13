@@ -237,7 +237,7 @@ save(fullfile(pname,fnameRobotInfo),...
     'q','H_e2o','pname','bname_h','bname_f','fnameRobotInfo','pname');
 
 %% Calibrate camera position
-cal = calibrateUR3e_FixedCamera(pname,bname,fnameRobotInfo);
+cal = calibrateUR3e_FixedCamera(pname,bname_h,bname_f,fnameRobotInfo);
 
 %% Visualize camera
 H_o2a = sim.Frame0;
