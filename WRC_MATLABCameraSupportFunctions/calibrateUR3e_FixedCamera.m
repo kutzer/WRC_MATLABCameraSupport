@@ -1,12 +1,17 @@
-function cal = calibrateUR3e_FixedCamera(pname,bname,fnameRobotInfo)
+function cal = calibrateUR3e_FixedCamera(pname,bname_h,bname_f,fnameRobotInfo)
 % CALIBRATEUR3E_FIXEDCAMERA calibrates a UR3e given a series of
 % checkerboard images and associated end-effector poses of the robot.
+%   cal = calibrateUR3e_FixedCamera(pname,bname_h,bname_f,fnameRobotInfo)
+%
+%   Legacy syntax:
 %   cal = CALIBRATEUR3E_FIXEDCAMERA(pname,bname,fnameRobotInfo)
 %
 %   Input(s)
 %                pname - character array containing the folder name (aka
-%                        the path) containing the calibration images and robot pose data file
-%                bname - base filename for each image
+%                        the path) containing the calibration images and 
+%                        robot pose data file
+%              bname_h - base filename for each handheld image
+%              bname_f - base filename for each world fixed image
 %       fnameRobotInfo - filename containing the robot pose data
 %
 %   Output(s)
@@ -20,8 +25,19 @@ function cal = calibrateUR3e_FixedCamera(pname,bname,fnameRobotInfo)
 %   26Jan2022 - Allow user to manually find data set & dewarp image to
 %               match error results with cameraCalibrator
 %   31Mar2022 - Account for partial detections
+%   13Apr2022 - Added handheld data sets and meanSE ZERO = 1e-8
+
+% TODO - Allow users to select good images from entire calibration set! 
+% TODO - Prompt users to close all figures
 
 %% Check inputs
+if nargin == 3
+    % Legacy Compatibility
+    fnameRobotiInfo = bname_f;
+    bname_f = bname_h;
+    bname_h = [];
+end
+
 if nargin < 3
     [fnameRobotInfo,pname] = uigetfile({'*.mat'},'Select calibration data file (e.g. URInfo_*.mat)');
     if pname == 0
@@ -33,9 +49,10 @@ end
 
 %% Load saved robot data
 % This file contains:
-%   pname          - [REDUNTANT, NOT LOADED]
-%   bname          - [REDUNDANT, NOT LOADED]
+%   bname_h        - [POTENTIALLY REDUNDANT, DEFAULT - NOT LOADED]
+%   bname_f        - [POTENTIALLY REDUNDANT, DEFAULT - NOT LOADED]
 %   fnameRobotInfo - [REDUNDANT, NOT LOADED]
+%   pname          - [REDUNTANT, NOT LOADED]
 %   H_e2o          - N-element cell array containing end-effector pose
 %                    information relative to the robot base frame for each
 %                    of the N images used in calibration
@@ -43,30 +60,74 @@ end
 %                    for each of the N images used in calibration
 
 load( fullfile(pname,fnameRobotInfo),'H_e2o','q' );
-if ~exist('bname','var')
-    load( fullfile(pname,fnameRobotInfo),'bname' );
+if ~exist('bname_h','var')
+    % Clear previous warnings
+    lastwarn('', '');
+    % Attempt to load file
+    load( fullfile(pname,fnameRobotInfo),'bname_h' );
+    % Check if warning was thrown
+    str = lastwarn;
+    if isempty(str)
+        % Non-legacy file
+    else
+        % Legacy file
+        bname_h = [];
+        switch str
+            case 'Variable ''bname_h'' not found.'
+                % Expected warning
+            otherwise
+                % Unexpected warning
+                fprintf('Unexpected Warning: "%s"\n',str);
+        end
+    end
+end
+if ~exist('bname_f','var')
+    if ~isempty('bname_h')
+        % Non-legacy file
+        load( fullfile(pname,fnameRobotInfo),'bname_f' );
+    else
+        % Legacy file
+        load( fullfile(pname,fnameRobotInfo),'bname' );
+        bname_f = bname;
+        clearvars bname
+        fprintf('\tLegacy data set, no handheld images available.\n');
+    end
 end
 
-if ~exist('bname','var')
-    [bname,~] = uigetfile({'*.png'},'Select one calibration image',pname);
+%% Allow users to specify file(s) if no base filenames are available
+if ~exist('bname_h','var')
+    [bname,~] = uigetfile({'*.png'},'Select one handheld checkerboard calibration image',pname);
     if pname == 0
         warning('Action cancelled by user.');
         cal = [];
         return
     end
     % TODO - make this more robust!
-    bname = bname(1:end-8);
+    bname_h = bname(1:end-8);
+end
+
+if ~exist('bname_f','var')
+    [bname,~] = uigetfile({'*.png'},'Select one end-effector fixed checkerboard calibration image',pname);
+    if pname == 0
+        warning('Action cancelled by user.');
+        cal = [];
+        return
+    end
+    % TODO - make this more robust!
+    bname_f = bname(1:end-8);
 end
 
 %% Determine calibration image filenames
 % (1) Check image names starting with 1, and stop after the filename is no
 %     longer valid.
 % (2) Combine all images into a single cell array named "fnames"
+
+% Handheld images
 i = 0;
 while true
     % This assumes image numbering is sequential
     i = i+1;
-    fname = fullfile(pname,sprintf('%s_%03d.png',bname,i));
+    fname = fullfile(pname,sprintf('%s_%03d.png',bname_h,i));
     if exist(fname,'file') == 2
         fnames{i} = fname;
     else
@@ -74,9 +135,32 @@ while true
     end
 end
 i = i - 1;
-fprintf('Images found: %d\n',i);
+fprintf('Handheld checkerboard images found: %d\n',i);
+
+% Fixed images
+j = 0;
+ij = [];    % Index correspondence
+while true
+    % This assumes image numbering is sequential
+    i = i+1;
+    j = j+1;
+    ij(end+1,:) = [i,j];
+    fname = fullfile(pname,sprintf('%s_%03d.png',bname_f,j));
+    if exist(fname,'file') == 2
+        fnames{i} = fname;
+    else
+        break
+    end
+end
+i = i - 1;
+j = j - 1;
+ij(end,:) = [];
+fprintf('World fixed checkerboard images found: %d\n',j);
+fprintf('Total checkerboard images found: %d\n',i);
 
 % Define an array of all index values to use for image/pose correspondence
+%   NOTE: Only images with the basename bname_f are associated with
+%         image/pose correspondences
 idx = 1:i;  % Indices of all images
 
 %% Process images
@@ -106,7 +190,7 @@ originalImage = imread(fnames{1});
 
 % Prompt user for Square Size
 squareSize = inputdlg({'Enter square size in millimeters'},'SquareSize',...
-    [1,35],{'12.70'});
+    [1,35],{'10.00'});
 if numel(squareSize) == 0
     warning('Action cancelled by user.');
     cal = [];
@@ -191,21 +275,74 @@ switch list{listIdx}
         cal.A_c2m = [];
 end
 
+%% Check for negative principal point
+if ~isempty(cal.A_c2m)
+    principalPoint = cal.A_c2m(1:2,3);
+    bin = principalPoint < 0;
+    if nnz(bin) > 0
+        %   12345678901234567890123456789012345678901234567890123456789012345678901234567890
+        str = sprintf([...
+            'Camera calibration for this data set has produced a negative principal point.\n'...
+            'The following intrinsics cannot be used:\n\n']);
+        val = max(abs(round( reshape(cal.A_c2m,1,[]) )));
+        ndig = numel( int2str(val) );
+        ndig = ndig+1+3;
+        fstr = ['%',sprintf('%d',ndig),'.2f'];
+        str = sprintf(['%s',...
+            '\tA_c2m = ['],str);
+
+        for i = 1:size(cal.A_c2m,1)
+            for j = 1:size(cal.A_c2m,2)
+                vstr = sprintf(fstr,cal.A_c2m(i,j));
+                if j == 1
+                    str = sprintf('%s%s',str,vstr);
+                elseif j > 1 && j < size(cal.A_c2m,2)
+                    str = sprintf('%s, %s',str,vstr);
+                elseif i < size(cal.A_c2m,1)
+                    str = sprintf('%s%s]\n\t        [',str,vstr);
+                else
+                    str = sprintf('%s%s]\n',str,vstr);
+                end
+            end
+        end
+        str = sprintf(['%s\n'...
+            'Re-calibrate the system with larger checkerboard pose variations.'],str);
+        error(str);
+    end
+end
+
 %% Define extrinsic and forward kinematic correspondences
 % This uses the index values of images accepted in calibration to define
 % pairs between extrinsics and forward kinematics (and joint
 % configurations)
+calIdx = 0;
 for i = 1:numel(idx)
+    % Find image index in i/j index correspondence
+    bin = ij(:,1) == idx(i);
+    if nnz(bin) ~= 1
+        fprintf('Ignoring handheld image "%s"\n',fnames{i});
+        continue
+    end
+
+    % Increase calibration index
+    calIdx = calIdx + 1;
+    % Define fixed checkerboard image index
+    j = ij(bin,2);
+
+    % Calibration image name
+    calFnames{calIdx} = fnames{i};
+    % Calibration image index
+    cal_i(calIdx) = i;
     % Camera extrinsics ("grid" frame relative to camera frame)
-    cal.H_g2c{i} = [...
+    cal.H_g2c{calIdx} = [...
         cameraParams.RotationMatrices(:,:,i).', ...
         cameraParams.TranslationVectors(i,:).';...
         0,0,0,1];
     % Forward kinematics (end-effector frame relative to base frame)
-    cal.H_e2o{i} = H_e2o{idx(i)};
+    cal.H_e2o{calIdx} = H_e2o{j};
     % Joint configuration
     %   -> We aren't actually using this
-    cal.q(:,i) = q(:,idx(i));
+    cal.q(:,calIdx) = q(:,j);
 end
 
 %% Display calibration results
@@ -218,7 +355,7 @@ for i = 1:numel(cal.H_g2c)
     fig(i) = figure('Name',sprintf('Image %02d',i),'Tag',sprintf('%d',i));
     axs(i) = axes('Parent',fig(i));
     % Load image
-    im = imread(fnames{i});
+    im = imread(calFnames{i});
     % Undistort image
     uIm = undistortImage(im, cameraParams);
     % Display undistorted image
@@ -416,7 +553,8 @@ cal.H_g2e = invSE( cal.H_e2g );
 for i = 1:n
     H_c2o{i} = cal.H_e2o{i}*cal.H_g2e*invSE( cal.H_g2c{i} );
 end
-cal.H_c2o = meanSE(H_c2o,1);
+% TODO - investigate decoupled meanSE and/or use AX = XB
+cal.H_c2o = meanSE(H_c2o,1,1e-8);
 cal.H_o2c = invSE( cal.H_c2o );
 
 %% Visualize base frame estimates and mean

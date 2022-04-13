@@ -7,6 +7,9 @@
 
 % Updates
 %   10Mar2022 - Allow user to specify robot connection
+%   13Apr2022 - Added user cancel options
+%   13Apr2022 - Allow user to collect hand-held fiducial images and 
+%               end-effector fixed fiducial images
 
 %clear all
 close all
@@ -18,15 +21,29 @@ pname = 'FixedCameraImages';
 
 %% Initialize camera
 while true
-    rsp = questdlg('Is your fixed camera currently initialized?','Existing Camera','Yes','No','No');
+    rsp = questdlg('Is your fixed camera currently initialized?',...
+        'Existing Camera','Yes','No','Cancel','No');
 
     switch rsp
         case 'Yes'
             % Get current list of variables in workspace
             list = who;
+
+            % Find existing camera object with typical variable name
+            bin = matches(list,'cam','IgnoreCase',false);
+            if nnz(bin) == 0
+                bin = matches(list,'cam','IgnoreCase',true);
+            end
+            if nnz(bin) ~= 0
+                idx = find(bin,1,'first');
+            else
+                idx = 1;
+            end
+
             % Ask user to specify their camera object
             [idx,tf] = listdlg('ListString',list,'SelectionMode','single',...
-                'PromptString',{'Select your existing','"camera" object handle',...
+                'InitialValue',idx,'PromptString',...
+                {'Select your existing','"camera" object handle',...
                 '(typically "cam" is used as','the variable name)'});
 
             if tf
@@ -40,6 +57,12 @@ while true
             % Initialize camera
             [cam,prv,handles] = initCamera;
             break
+
+        case 'Cancel'
+            % Action cancelled by user
+            fprintf('Action cancelled by user\n');
+            return
+
         otherwise
             warning('Please select a valid response.');
     end
@@ -47,26 +70,47 @@ end
 
 %% Initialize robot
 while true
-    rsp = questdlg('Is your URQt object initialized?','Existing URQt','Yes','No','No');
+    rsp = questdlg('Is your URQt object initialized?',...
+        'Existing URQt','Yes','No','Cancel','No');
 
     switch rsp
         case 'Yes'
             % Get current list of variables in workspace
             list = who;
+
+            % Find existing URQt object with typical variable name
+            bin = matches(list,'ur','IgnoreCase',false);
+            if nnz(bin) == 0
+                bin = matches(list,'ur','IgnoreCase',true);
+            end
+            if nnz(bin) ~= 0
+                idx = find(bin,1,'first');
+            else
+                idx = 1;
+            end
+
             % Ask user to specify their URQt object
             [idx,tf] = listdlg('ListString',list,'SelectionMode','single',...
-                'PromptString',{'Select your existing','"URQt" object handle',...
+                'InitialValue',idx,'PromptString',...
+                {'Select your existing','"URQt" object handle',...
                 '(typically "ur" is used as','the variable name)'});
             if tf
                 ur = eval(sprintf('%s'),list{idx});
                 break
             end
+
         case 'No'
             f = msgbox('Power on UR3e and press OK when complete.','Power on robot');
             uiwait(f);
             ur = URQt('UR3e');
             ur.Initialize;
             break
+
+        case 'Cancel'
+            % Action cancelled by user
+            fprintf('Action cancelled by user\n');
+            return
+
         otherwise
             warning('Please select a valid response.');
     end
@@ -89,6 +133,54 @@ set(sim.Axes,'Visible','off');
 set(sim.Figure,'Color',[1 1 1]);
 sim.Joints = ur.Joints;
 
+%% Setup calibration data folder & image information
+if ~isfolder(pname)
+    mkdir(pname);
+end
+
+% Define the "base" image name (these use the date/time to make sure we
+% differentiate between calibration sessions.
+%   Example Image Name: 'Im_20210419_092301_001.png'
+%       -> The "base" image name is 'Im_20210419_092301'
+dstr = datestr(now,'yyyymmdd_HHMMSS');
+bname_h = sprintf('Im_h_%s',dstr);  % Images of handheld checkerboard
+bname_f = sprintf('Im_f_%s',dstr);  % Images of fixed checkerboard
+
+% Define the image format (fmt) and total number of calibration images
+fmt = 'png';
+
+%% Take handheld calibration images
+% Prompt user for number of calibration images
+nImages = inputdlg({'Enter number of handheld calibration images'},...
+    'Handheld Calibration Images',[1,35],{'20'});
+if numel(nImages) == 0
+    warning('Action cancelled by user.');
+    cal = [];
+    return
+end
+n = ceil( str2double( nImages{1} ) );
+
+% Get standard calibration images
+for i = 1:n
+    % Define filename of image
+    fname = sprintf('%s_%03d.%s',bname_h,i,fmt);
+    % Bring preview to foreground
+    figure(handles.Figure);
+    % Prompt user to move arm
+    msg = sprintf(['Move the checkerboard to a new pose that is ',...
+        'fully in the camera FOV avoiding poses with glare.',...
+        'Taking Image %d of %d.'],i,n);
+    f = msgbox(msg,'Get Handheld Image');
+    uiwait(f);
+   
+    % Get the image from the preview
+    im = get(prv,'CData');
+    % Save the image
+    imwrite(im,fullfile(pname,fname),fmt);
+end
+
+%% Take end-effector fixed checkerboard calibration images
+
 %% Put checkerboard in gripper
 ur.GripSpeed = 255;
 ur.GripForce = 255;
@@ -101,23 +193,9 @@ ur.GripPosition = 52;
 f = msgbox('Set robot to local control.','Local Control');
 uiwait(f);
 
-% Create the calibration folder
-if ~isfolder(pname)
-    mkdir(pname);
-end
-
-% Define the "base" image name (these use the date/time to make sure we
-% differentiate between calibration sessions.
-%   Example Image Name: 'Im_20210419_092301_001.png'
-%       -> The "base" image name is 'Im_20210419_092301'
-dstr = datestr(now,'yyyymmdd_HHMMSS');
-bname = sprintf('Im_%s',dstr);
-
-% Define the image format (fmt) and total number of calibration images
-fmt = 'png';
 % Prompt user for number of calibration images
-nImages = inputdlg({'Enter number of calibration images'},'Calibration Images',...
-    [1,35],{'20'});
+nImages = inputdlg({'Enter number of end-effector fixed calibration images'},...
+    'Robot/Camera Calibration Images',[1,35],{'15'});
 if numel(nImages) == 0
     warning('Action cancelled by user.');
     cal = [];
@@ -130,7 +208,7 @@ q = [];     % <--- We are not actually using this for calibration
 H_e2o = {}; % <--- We are using this for calibration
 for i = 1:n
     % Define filename of image
-    fname = sprintf('%s_%03d.%s',bname,i,fmt);
+    fname = sprintf('%s_%03d.%s',bname_f,i,fmt);
     % Bring preview to foreground
     figure(handles.Figure);
     % Prompt user to move arm
@@ -151,10 +229,12 @@ for i = 1:n
     % Save the image
     imwrite(im,fullfile(pname,fname),fmt);
 end
+
+%% Save calibration dataset
 % Define the filename for the robot data
 fnameRobotInfo = sprintf('URInfo_%s.mat',dstr);
 save(fullfile(pname,fnameRobotInfo),...
-    'q','H_e2o','pname','bname','fnameRobotInfo');
+    'q','H_e2o','pname','bname_h','bname_f','fnameRobotInfo','pname');
 
 %% Calibrate camera position
 cal = calibrateUR3e_FixedCamera(pname,bname,fnameRobotInfo);

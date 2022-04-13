@@ -1,15 +1,15 @@
 function cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInfo)
-% CALIBRATEUR3E_FIXEDCAMERA calibrates a UR3e given a series of
+% CALIBRATEUR3E_EYEINHANDCAMERA calibrates a UR3e given a series of
 % checkerboard images and associated end-effector poses of the robot.
-%   cal = CALIBRATEUR3E_FIXEDCAMERA(pname,bname,fnameRobotInfo)
+%   cal = CALIBRATEUR3E_EYEINHANDCAMERA(pname,bname_h,bname_f,fnameRobotInfo)
 %
 %   Input(s)
-%                pname   - character array containing the folder name (aka
-%                          the path) containing the calibration images and 
-%                          robot pose data file
-%                bname_h - base filename for each handheld image
-%                bname_f - base filename for each fixed image
-%       fnameRobotInfo   - filename containing the robot pose data
+%                pname - character array containing the folder name (aka
+%                        the path) containing the calibration images and 
+%                        robot pose data file
+%              bname_h - base filename for each handheld image
+%              bname_f - base filename for each world fixed image
+%       fnameRobotInfo - filename containing the robot pose data
 %
 %   Output(s)
 %       cal - structured array containing robot/camera transformation
@@ -20,9 +20,14 @@ function cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInf
 
 % Updates
 %   25Mar2022 - Account for partial detections
+%   13Apr2022 - Updated documentation, added 3D error visualization, and
+%               meanSE ZERO = 1e-8
+
+% TODO - Allow users to select good images from entire calibration set! 
+% TODO - Prompt users to close all figures
 
 %% Check inputs
-if nargin < 3
+if nargin < 4
     [fnameRobotInfo,pname] = uigetfile({'*.mat'},'Select calibration data file (e.g. URInfo_*.mat)');
     if pname == 0
         warning('Action cancelled by user.');
@@ -33,16 +38,15 @@ end
 
 %% Load saved robot data
 % This file contains:
-%   pname          - [REDUNTANT, NOT LOADED]
-%   bname_h        - [REDUNDANT, NOT LOADED]
-%   bname_f        - [REDUNDANT, NOT LOADED]
+%   bname_h        - [POTENTIALLY REDUNDANT, DEFAULT - NOT LOADED]
+%   bname_f        - [POTENTIALLY REDUNDANT, DEFAULT - NOT LOADED]
 %   fnameRobotInfo - [REDUNDANT, NOT LOADED]
+%   pname          - [REDUNTANT, NOT LOADED]
 %   H_e2o          - N-element cell array containing end-effector pose
 %                    information relative to the robot base frame for each
 %                    of the N images used in calibration
 %   q              - 6xN array containing robot joint configurations
 %                    for each of the N images used in calibration
-
 load( fullfile(pname,fnameRobotInfo),'H_e2o','q' );
 if ~exist('bname_h','var')
     load( fullfile(pname,fnameRobotInfo),'bname_h' );
@@ -51,6 +55,7 @@ if ~exist('bname_f','var')
     load( fullfile(pname,fnameRobotInfo),'bname_f' );
 end
 
+%% Allow users to specify file(s) if no base filenames are available
 if ~exist('bname_h','var')
     [bname,~] = uigetfile({'*.png'},'Select one handheld checkerboard calibration image',pname);
     if pname == 0
@@ -63,7 +68,7 @@ if ~exist('bname_h','var')
 end
 
 if ~exist('bname_f','var')
-    [bname,~] = uigetfile({'*.png'},'Select one fixed checkerboard calibration image',pname);
+    [bname,~] = uigetfile({'*.png'},'Select one end-effector fixed checkerboard calibration image',pname);
     if pname == 0
         warning('Action cancelled by user.');
         cal = [];
@@ -111,7 +116,7 @@ end
 i = i - 1;
 j = j - 1;
 ij(end,:) = [];
-fprintf('Fixed checkerboard images found: %d\n',j);
+fprintf('World fixed checkerboard images found: %d\n',j);
 fprintf('Total checkerboard images found: %d\n',i);
 
 % Define an array of all index values to use for image/pose correspondence
@@ -146,7 +151,7 @@ originalImage = imread(fnames{1});
 
 % Prompt user for Square Size
 squareSize = inputdlg({'Enter square size in millimeters'},'SquareSize',...
-    [1,35],{'12.70'});
+    [1,35],{'10.00'});
 if numel(squareSize) == 0
     warning('Action cancelled by user.');
     cal = [];
@@ -229,6 +234,42 @@ switch list{listIdx}
         fprintf('Fisheye does not provide an intrinsic matrix!\n')
         fprintf('\tUse imagePoints = worldToImage(cal.cameraParams.Intrinsics,H_o2c(1:3,1:3).'',H_o2c(1:3,4).'',P_o(1:3,:).'')\n')
         cal.A_c2m = [];
+end
+
+%% Check for negative principal point
+if ~isempty(cal.A_c2m)
+    principalPoint = cal.A_c2m(1:2,3);
+    bin = principalPoint < 0;
+    if nnz(bin) > 0
+        %   12345678901234567890123456789012345678901234567890123456789012345678901234567890
+        str = sprintf([...
+            'Camera calibration for this data set has produced a negative principal point.\n'...
+            'The following intrinsics cannot be used:\n\n']);
+        val = max(abs(round( reshape(cal.A_c2m,1,[]) )));
+        ndig = numel( int2str(val) );
+        ndig = ndig+1+3;
+        fstr = ['%',sprintf('%d',ndig),'.2f'];
+        str = sprintf(['%s',...
+            '\tA_c2m = ['],str);
+
+        for i = 1:size(cal.A_c2m,1)
+            for j = 1:size(cal.A_c2m,2)
+                vstr = sprintf(fstr,cal.A_c2m(i,j));
+                if j == 1
+                    str = sprintf('%s%s',str,vstr);
+                elseif j > 1 && j < size(cal.A_c2m,2)
+                    str = sprintf('%s, %s',str,vstr);
+                elseif i < size(cal.A_c2m,1)
+                    str = sprintf('%s%s]\n\t        [',str,vstr);
+                else
+                    str = sprintf('%s%s]\n',str,vstr);
+                end
+            end
+        end
+        str = sprintf(['%s\n'...
+            'Re-calibrate the system with larger checkerboard pose variations.'],str);
+        error(str);
+    end
 end
 
 %% Define extrinsic and forward kinematic correspondences
@@ -473,35 +514,38 @@ cal.H_e2c = invSE( cal.H_c2e );
 for i = 1:n
     H_g2o{i} = cal.H_e2o{i}*cal.H_c2e*cal.H_g2c{i};
 end
-cal.H_g2o = meanSE(H_g2o,1);
+% TODO - investigate decoupled meanSE and/or use AX = XB
+cal.H_g2o = meanSE(H_g2o,1,1e-8);
 cal.H_o2g = invSE( cal.H_g2o );
 
 %% Visualize base frame estimates and mean
-% fig3D = figure('Name','Base Frame Estimate');
-% axs3D = axes('Parent',fig3D);
-% hold(axs3D,'on');
-% daspect(axs3D,[1 1 1]);
-% view(axs3D,3);
-% 
-% H_c2e = cal.H_c2e;
-% sc = max( abs(H_c2e(1:3,4)) )/10;
-% cam3D = plotCamera('Parent',axs3D,'Location',H_c2a(1:3,4).',...
-%     'Orientation',H_c2e(1:3,1:3).','Size',sc/2,'Color',[0,0,1]);
-% h_c2a = triad('Parent',axs3D,'Matrix',H_c2a,'Scale',sc,...
-%     'AxisLabels',{'x_c','y_c','z_c'});
-% 
-% for i = 1:numel(cal.H_e2o)
-%     H_o2c = cal.H_g2c{i}*cal.H_e2g*invSE( cal.H_e2o{i} );
-%     xyz = 'xyz';
-%     for j = 1:3
-%         lbls{j} = sprintf('%s_{o_%d}',xyz(j),i);
-%     end
-%     h_o2c(i) = triad('Parent',h_c2a,'Matrix',H_o2c,'Scale',sc);%,...
-%     %'AxisLabels',{lbls{1},lbls{2},lbls{3}});
-% end
-% 
-% h_o2c_mu = triad('Parent',h_c2a,'Matrix',cal.H_o2c,'Scale',sc*3,...
-%     'AxisLabels',{'x_o','y_o','z_o'},'LineWidth',2);
+fig3D = figure('Name','Camera Frame Estimate');
+axs3D = axes('Parent',fig3D);
+hold(axs3D,'on');
+daspect(axs3D,[1 1 1]);
+view(axs3D,3);
+
+H_e2a = eye(4);
+H_c2e = cal.H_c2e;
+H_c2a = H_e2a*H_c2e;
+sc = max( abs(H_c2e(1:3,4)) )/10;
+cam3D = plotCamera('Parent',axs3D,'Location',H_c2a(1:3,4).',...
+    'Orientation',H_c2a(1:3,1:3).','Size',sc/2,'Color',[0,0,1]);
+h_e2a = triad('Parent',axs3D,'Matrix',H_c2e,'Scale',sc,...
+    'AxisLabels',{'x_e','y_e','z_e'});
+
+for i = 1:numel(cal.H_c2e)
+    H_c2e = invSE( cal.H_e2o{i} )*cal.H_g2o*invSE( cal.H_g2c{i} );
+    xyz = 'xyz';
+    for j = 1:3
+        lbls{j} = sprintf('%s_{o_%d}',xyz(j),i);
+    end
+    h_c2e(i) = triad('Parent',h_e2a,'Matrix',H_c2e,'Scale',sc);%,...
+    %'AxisLabels',{lbls{1},lbls{2},lbls{3}});
+end
+
+h_c2e_mu = triad('Parent',h_e2a,'Matrix',H_c2e,'Scale',sc,...
+    'AxisLabels',{'x_c','y_c','z_c'},'LineWidth',2);
 
 %% Calculate reprojection errors using calculated extrinsics
 for i = 1:n

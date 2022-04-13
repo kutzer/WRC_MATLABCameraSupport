@@ -7,6 +7,7 @@
 %   M. Kutzer, 24Mar2022, USNA
 
 % Updates
+%   13Apr2022 - Added user cancel options
 
 %clear all
 close all
@@ -18,15 +19,29 @@ pname = 'EyeInHandCameraImages';
 
 %% Initialize camera
 while true
-    rsp = questdlg('Is your eye-in-hand camera currently initialized?','Existing Camera','Yes','No','No');
+    rsp = questdlg('Is your eye-in-hand camera currently initialized?',...
+        'Existing Camera','Yes','No','Cancel','No');
 
     switch rsp
         case 'Yes'
             % Get current list of variables in workspace
             list = who;
+
+            % Find existing camera object with typical variable name
+            bin = matches(list,'cam','IgnoreCase',false);
+            if nnz(bin) == 0
+                bin = matches(list,'cam','IgnoreCase',true);
+            end
+            if nnz(bin) ~= 0
+                idx = find(bin,1,'first');
+            else
+                idx = 1;
+            end
+
             % Ask user to specify their camera object
             [idx,tf] = listdlg('ListString',list,'SelectionMode','single',...
-                'PromptString',{'Select your existing','"camera" object handle',...
+                'InitialValue',idx,'PromptString',...
+                {'Select your existing','"camera" object handle',...
                 '(typically "cam" is used as','the variable name)'});
 
             if tf
@@ -40,6 +55,12 @@ while true
             % Initialize camera
             [cam,prv,handles] = initCamera;
             break
+
+        case 'Cancel'
+            % Action cancelled by user
+            fprintf('Action cancelled by user\n');
+            return
+
         otherwise
             warning('Please select a valid response.');
     end
@@ -47,26 +68,47 @@ end
 
 %% Initialize robot
 while true
-    rsp = questdlg('Is your URQt object initialized?','Existing URQt','Yes','No','No');
+    rsp = questdlg('Is your URQt object initialized?',...
+        'Existing URQt','Yes','No','Cancel','No');
 
     switch rsp
         case 'Yes'
             % Get current list of variables in workspace
             list = who;
+
+            % Find existing URQt object with typical variable name
+            bin = matches(list,'ur','IgnoreCase',false);
+            if nnz(bin) == 0
+                bin = matches(list,'ur','IgnoreCase',true);
+            end
+            if nnz(bin) ~= 0
+                idx = find(bin,1,'first');
+            else
+                idx = 1;
+            end
+
             % Ask user to specify their URQt object
             [idx,tf] = listdlg('ListString',list,'SelectionMode','single',...
-                'PromptString',{'Select your existing','"URQt" object handle',...
+                'InitialValue',idx,'PromptString',...
+                {'Select your existing','"URQt" object handle',...
                 '(typically "ur" is used as','the variable name)'});
             if tf
                 ur = eval(sprintf('%s'),list{idx});
                 break
             end
+
         case 'No'
             f = msgbox('Power on UR3e and press OK when complete.','Power on robot');
             uiwait(f);
             ur = URQt('UR3e');
             ur.Initialize;
             break
+
+        case 'Cancel'
+            % Action cancelled by user
+            fprintf('Action cancelled by user\n');
+            return
+
         otherwise
             warning('Please select a valid response.');
     end
@@ -108,8 +150,8 @@ fmt = 'png';
 
 %% Take handheld calibration images
 % Prompt user for number of calibration images
-nImages = inputdlg({'Enter number of standard calibration images'},...
-    'Standard Calibration Images',[1,35],{'20'});
+nImages = inputdlg({'Enter number of handheld calibration images'},...
+    'Handheld Calibration Images',[1,35],{'20'});
 if numel(nImages) == 0
     warning('Action cancelled by user.');
     cal = [];
@@ -136,7 +178,7 @@ for i = 1:n
     imwrite(im,fullfile(pname,fname),fmt);
 end
 
-%% Take fixed checkerboard calibration images
+%% Take world fixed checkerboard calibration images
 % Place robot in local control and take images
 f = msgbox('Set robot to local control.','Local Control');
 uiwait(f);
@@ -155,8 +197,8 @@ f = msgbox(msg,'Place Checkerboard');
 uiwait(f);
 
 % Prompt user for number of calibration images
-nImages = inputdlg({'Enter number of fixed calibration images'},...
-    'Fixed Calibration Images',[1,35],{'10'});
+nImages = inputdlg({'Enter number of world fixed calibration images'},...
+    'Robot/Camera Calibration Images',[1,35],{'15'});
 if numel(nImages) == 0
     warning('Action cancelled by user.');
     cal = [];
@@ -195,7 +237,7 @@ end
 % Define the filename for the robot data
 fnameRobotInfo = sprintf('URInfo_%s.mat',dstr);
 save(fullfile(pname,fnameRobotInfo),...
-    'q','H_e2o','pname','bname_h','bname_f','fnameRobotInfo');
+    'q','H_e2o','pname','bname_h','bname_f','fnameRobotInfo','pname');
 
 %% Calibrate camera position
 cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInfo);
