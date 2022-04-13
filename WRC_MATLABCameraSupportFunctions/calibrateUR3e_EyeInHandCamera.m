@@ -119,6 +119,11 @@ ij(end,:) = [];
 fprintf('World fixed checkerboard images found: %d\n',j);
 fprintf('Total checkerboard images found: %d\n',i);
 
+% Rename variables for later use
+nImagesTotal = i;
+nImagesHandheld = j;
+nImagesRobot = i-j;
+
 % Define an array of all index values to use for image/pose correspondence
 %   NOTE: Only images with the basename bname_f are associated with
 %         image/pose correspondences
@@ -242,7 +247,7 @@ if ~isempty(cal.A_c2m)
     bin = principalPoint < 0;
     if nnz(bin) > 0
         %   12345678901234567890123456789012345678901234567890123456789012345678901234567890
-        str = sprintf([...
+        str = sprintf(['\n',...
             'Camera calibration for this data set has produced a negative principal point.\n'...
             'The following intrinsics cannot be used:\n\n']);
         val = max(abs(round( reshape(cal.A_c2m,1,[]) )));
@@ -267,8 +272,28 @@ if ~isempty(cal.A_c2m)
             end
         end
         str = sprintf(['%s\n'...
-            'Re-calibrate the system with larger checkerboard pose variations.'],str);
-        error(str);
+            'Try adding handheld images with larger checkerboard pose variations.\n'],str);
+        fprintf(2,str);
+        
+        % Prompt user to add more handheld images
+        rsp = questdlg('Would you like to try to add more handheld images?',...
+            'Add Images','Yes','No','Yes');
+        switch rsp
+            case 'Yes'
+                % Close old figures
+                delete([h1,h2]);
+                % Add calibration images
+                addHandheldImages(pname,bname_h,nImagesHandheld+1);
+                % Recursive function call
+                cal = calibrateUR3e_FixedCamera(pname,bname_h,bname_f,fnameRobotInfo);
+                return
+            otherwise
+                cal = [];
+                fprintf([...
+                    'Action cancelled by user\n\n'
+                    'No valid calibration found.\n']);
+                return
+        end
     end
 end
 
@@ -277,11 +302,14 @@ end
 % pairs between extrinsics and forward kinematics (and joint
 % configurations)
 calIdx = 0;
+fprintf('\nDefining AX = XB correspondence...\n');
+fprintf('\tIgnoring handheld images:\n');
 for i = 1:numel(idx)
     % Find image index in i/j index correspondence
     bin = ij(:,1) == idx(i);
     if nnz(bin) ~= 1
-        fprintf('Ignoring handheld image "%s"\n',fnames{i});
+        [~,fileName,ext] = fileparts(fnames{i});
+        fprintf('\t\tImage filename "%s%s"\n',fileName,ext);
         continue
     end
     
@@ -448,11 +476,11 @@ con_m_cam(:,bin) = [];
 con_m0_cam(:,bin) = [];
 lgnd(:,bin) = [];
 
-fprintf('Remaining Images:\n');
+fprintf('\tRemaining Images:\n');
 for i = 1:numel(fig)
     figName = get(fig(i),'Name');
     [~,fileName,ext] = fileparts(fnames{i});
-    fprintf('\tFigure "%s", Image filename "%s%s"\n',figName,fileName,ext);
+    fprintf('\t\tImage filename "%s%s" (Figure "%s")\n',fileName,ext,figName);
 end
 
 %% Define relative camera and end-effector pairs
