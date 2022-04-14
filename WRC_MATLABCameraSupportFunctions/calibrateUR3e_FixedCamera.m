@@ -85,6 +85,7 @@ if ~exist('bname_f','var')
     if ~isempty(bname_h)
         % Non-legacy file
         load( fullfile(pname,fnameRobotInfo),'bname_f' );
+        fprintf('\n');
     else
         % Legacy file
         load( fullfile(pname,fnameRobotInfo),'bname' );
@@ -135,7 +136,6 @@ while true
     end
 end
 i = i - 1;
-fprintf('Handheld checkerboard images found: %d\n',i);
 
 % Fixed images
 j = 0;
@@ -155,13 +155,14 @@ end
 i = i - 1;
 j = j - 1;
 ij(end,:) = [];
-fprintf('World fixed checkerboard images found: %d\n',j);
-fprintf('Total checkerboard images found: %d\n',i);
 
 % Rename variables for later use
-nImagesTotal = i;
-nImagesHandheld = j;
-nImagesRobot = i-j;
+nImagesTotal    = i;
+nImagesRobot    = j;
+nImagesHandheld = i-j;
+fprintf('%40s: %4d\n','Handheld checkerboard images found',nImagesHandheld);
+fprintf('%40s: %4d\n','World fixed checkerboard images found',nImagesRobot);
+fprintf('%40s: %4d\n','Total checkerboard images found',nImagesTotal);
 
 % Define an array of all index values to use for image/pose correspondence
 %   NOTE: Only images with the basename bname_f are associated with
@@ -171,7 +172,7 @@ imageIdx = 1:i;  % Indices of all images
 %% Process images
 % Detect checkerboards in images
 %   -> This uses the same functions as "cameraCalibrator.m"
-fprintf('Detecting checkerboards...')
+fprintf('\nDetecting checkerboards...');
 try
     % NEWER VERSION OF MATLAB
     [P_m, boardSize, imagesUsed] = detectCheckerboardPoints(fnames,...
@@ -180,14 +181,14 @@ catch
     % OLDER VERSION OF MATLAB
     [P_m, boardSize, imagesUsed] = detectCheckerboardPoints(fnames);
 end
-fprintf('COMPLETE\n');
+fprintf('COMPLETE\n\n');
 
 % Update list of images used
 fnames = fnames(imagesUsed);
 % Update list of indices used
 imageIdx = imageIdx(imagesUsed);
 % Images used
-fprintf('Images with detected checkerboards: %d\n',numel(imageIdx));
+fprintf('%40s: %4d\n','Images with detected checkerboards',numel(imageIdx));
 
 % Read the first image to obtain image size
 originalImage = imread(fnames{1});
@@ -223,36 +224,36 @@ end
 switch list{listIdx}
     case 'Standard'
         % Standard camera calibration
-        fprintf('Calibrating using standard camera model...')
+        fprintf('\nCalibrating using standard camera model...');
         [cameraParams, imagesUsed, estimationErrors] = ...
             estimateCameraParameters(P_m, P_g, ...
             'EstimateSkew', false, 'EstimateTangentialDistortion', false, ...
             'NumRadialDistortionCoefficients', 2, 'WorldUnits', 'millimeters', ...
             'InitialIntrinsicMatrix', [], 'InitialRadialDistortion', [], ...
             'ImageSize', [mrows, ncols]);
-        fprintf('COMPLETE\n');
+        fprintf('COMPLETE\n\n');
     case 'Fisheye'
         % Fisheye camera calibration
-        fprintf('Calibrating using fisheye camera model...')
+        fprintf('\nCalibrating using fisheye camera model...');
         [cameraParams, imagesUsed, estimationErrors] = ...
             estimateFisheyeParameters(P_m, P_g, ...
             [mrows, ncols], ...
             'EstimateAlignment', true, ...
             'WorldUnits', 'millimeters');
-        fprintf('COMPLETE\n');
+        fprintf('COMPLETE\n\n');
 end
 % Update list of images used
 fnames = fnames(imagesUsed);
 % Update list of indices used
 imageIdx = imageIdx(imagesUsed);
 % Images used
-fprintf('Images used in calibration: %d\n',numel(imageIdx));
+fprintf('%40s: %4d\n','Images used in calibration',numel(imageIdx));
 
 % Update P_m
 P_m = P_m(:,:,imagesUsed);
 
 % View reprojection errors
-reproj.Figure = figure('Name','Reprojection Errors'); 
+reproj.Figure = figure('Name','Reprojection Errors','NumberTitle','off'); 
 showReprojectionErrors(cameraParams);
 reproj.Axes   = findobj('Parent',reproj.Figure,'Type','Axes');
 reproj.Legend = findobj('Parent',reproj.Figure,'Type','Legend');
@@ -260,7 +261,7 @@ reproj.Bar  = findobj('Parent',reproj.Axes,'Type','Bar','Tag','errorBars');
 reproj.Line = findobj('Parent',reproj.Axes,'Type','Line');
 
 % Visualize pattern locations
-extrin.Figure = figure('Name','Camera Extrinsics'); 
+extrin.Figure = figure('Name','Camera Extrinsics','NumberTitle','off'); 
 showExtrinsics(cameraParams,'CameraCentric');
 
 % Display parameter estimation errors
@@ -493,6 +494,7 @@ for i = 1:numel(cal.H_g2c)
     if badFig
         delete(fig(i));
     end
+    centerfig(fig(i));
     drawnow
 end
 
@@ -571,7 +573,7 @@ for i = 1:n
         end
     end
 end
-fprintf('Number of A/B pairs: %d\n',numel(A));
+fprintf('\nNumber of A/B pairs: %d\n',numel(A));
 
 %% Solve A * X = X * B
 X = solveAXeqXBinSE(A,B);
@@ -600,7 +602,7 @@ cal.H_c2o = meanSE(H_c2o,1,1e-8);
 cal.H_o2c = invSE( cal.H_c2o );
 
 %% Visualize base frame estimates and mean
-fig3D = figure('Name','Base Frame Estimate');
+fig3D = figure('Name','Base Frame Estimate','NumberTitle','off');
 axs3D = axes('Parent',fig3D);
 hold(axs3D,'on');
 daspect(axs3D,[1 1 1]);
@@ -627,6 +629,9 @@ h_o2c_mu = triad('Parent',h_c2a,'Matrix',cal.H_o2c,'Scale',sc*3,...
     'AxisLabels',{'x_o','y_o','z_o'},'LineWidth',2);
 
 %% Calculate reprojection errors using calculated extrinsics
+% Delete extrinsics figure
+delete(extrin.Figure);
+% Plot reprojection error & extrinsics
 for i = 1:n
     % Define segmented image points
     X_m = P_m(:,:,i).';
@@ -637,6 +642,19 @@ for i = 1:n
     % Define calibrated robot extrinsics
     H_g2c_ext = cal.H_o2c*cal.H_e2o{i}*cal.H_g2e;
     
+    % Visualize 3D checkerboard
+    [h_g2c(i),ptc_g{i}] = plotCheckerboard(h_c2a,...
+        boardSize,squareSize,{'r','w'});
+    [h_g2c_ext(i),ptc_g_ext{i}] = plotCheckerboard(h_c2a,...
+        boardSize,squareSize,{'c','w'});
+    set(h_g2c(i),'Matrix',cal.H_g2c{i});
+    set(h_g2c_ext(i),'Matrix',H_g2c_ext);
+    set(ptc_g{i},'FaceAlpha',0.5);
+    set(ptc_g_ext{i},'FaceAlpha',0.5,'EdgeColor','none');
+    hideTriad(h_g2c(i));
+    hideTriad(h_g2c_ext(i));
+   
+    % Display 
     % Project points
     switch list{listIdx}
         case 'Standard'
@@ -708,5 +726,40 @@ end
 
 %% Update bar graph
 hold(reproj.Axes,'on');
+% Overlay robot/camera reprojection errors
 reproj.RobotBar = bar(robotIdx,errALL,'Parent',reproj.Axes,'BarWidth',0.4,...
     'FaceColor','r','FaceAlpha',0.5);
+% Overlay robot/camera mean error
+reproj.RobotLine = copyobj(reproj.Line,reproj.Axes);
+set(reproj.RobotLine,'YData',repmat(mean(errALL),1,2),'Color','r');
+% Update legend
+lgndStr{1} = sprintf('Robot/Camera Mean Error: %5.2f',mean(errALL));
+lgndStr{2} = sprintf('      Camera Mean Error: %5.2f',mean( get(reproj.Line,'YData') ));
+reproj.NewLegend = legend([reproj.RobotLine,reproj.Line],lgndStr,...
+    'Parent',reproj.Figure,'FontName','Monospaced','FontWeight','Bold');
+
+% Bring calibration error to front
+figure(reproj.Figure);
+
+%% Prompt user to close reprojection issues
+rsp = questdlg('Would you like to close the reprojection error figures?',...
+    'Close Figures','Keep All','Keep Best/Worst','Close All','Keep Best/Worst');
+switch rsp
+    case 'Keep All'
+        % Keep all reprojection error figures
+    case 'Keep Best/Worst'
+        % Keep best/worst reprojection error figures
+        bin = errALL == max(errALL) | errALL == min(errALL);
+        delete(fig(~bin));
+    case 'Close All'
+        % Close all reprojection error figures
+        delete(fig);
+    otherwise
+        fprintf([...
+            'Action cancelled by user\n\n',...
+            'Keeping "Best/Worst" reprojection error figures.\n']);
+        % Keep best/worst reprojection error figures
+        bin = errALL == max(errALL) | errALL == min(errALL);
+        delete(fig(~bin));
+        return
+end
