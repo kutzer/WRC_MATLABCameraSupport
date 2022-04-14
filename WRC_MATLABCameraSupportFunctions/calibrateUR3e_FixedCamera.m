@@ -538,6 +538,8 @@ for i = 1:numel(fig)
     fprintf('\t\tImage filename "%s%s" (Figure "%s")\n',fileName,ext,figName);
 end
 
+% END COMMON CODE!!!
+
 %% Define relative camera and end-effector pairs
 % This defines all combinations of relative grid poses and relative
 % end-effector poses, and compile "A" and "B" terms to solve the "AX = XB"
