@@ -321,7 +321,7 @@ if ~isempty(cal.A_c2m)
         fprintf(2,str);
         
         % Close old figures
-        %delete([reproj.Figure,extrin.Figure]);
+        delete([reproj.Figure,extrin.Figure]);
 
         % Prompt user to add more handheld images
         rsp = questdlg('Would you like to try to add more handheld images?',...
