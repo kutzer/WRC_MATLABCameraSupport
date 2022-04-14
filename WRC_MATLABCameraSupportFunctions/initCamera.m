@@ -32,6 +32,8 @@ function [cam,varargout] = initCamera
 %           -> login to mathworks using email and password
 %           -> Install
 %
+%   See also adjustCamera recoverPreviewHandles recoverPreviewTime
+%
 %   M. Kutzer, 02Mar2016, USNA
 
 % Updates
