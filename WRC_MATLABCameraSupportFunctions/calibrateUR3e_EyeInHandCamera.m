@@ -213,10 +213,16 @@ fprintf('Images used in calibration: %d\n',numel(idx));
 P_m = P_m(:,:,imagesUsed);
 
 % View reprojection errors
-h1 = figure('Name','Reprojection Errors'); showReprojectionErrors(cameraParams);
+reproj.Figure = figure('Name','Reprojection Errors'); 
+showReprojectionErrors(cameraParams);
+reproj.Axes   = findobj('Parent',reproj.Figure,'Type','Axes');
+reproj.Legend = findobj('Parent',reproj.Figure,'Type','Legend');
+reproj.Bar  = findobj('Parent',reproj.Axes,'Type','Bar','Tag','errorBars');
+reproj.Line = findobj('Parent',reproj.Axes,'Type','Line');
 
 % Visualize pattern locations
-h2 = figure('Name','Camera Extrinsics'); showExtrinsics(cameraParams, 'CameraCentric');
+extrin.Figure = figure('Name','Camera Extrinsics'); 
+showExtrinsics(cameraParams, 'CameraCentric');
 
 % Display parameter estimation errors
 %displayErrors(estimationErrors, cameraParams);
@@ -276,7 +282,7 @@ if ~isempty(cal.A_c2m)
         fprintf(2,str);
         
         % Close old figures
-        delete([h1,h2]);
+        delete([reproj.Figure,extrin.Figure]);
 
         % Prompt user to add more handheld images
         rsp = questdlg('Would you like to try to add more handheld images?',...
