@@ -327,6 +327,7 @@ if ~isempty(cal.A_c2m)
                 fprintf([...
                     'Action cancelled by user\n\n',...
                     'No valid calibration found.\n']);
+                out = [];
                 return
         end
 
