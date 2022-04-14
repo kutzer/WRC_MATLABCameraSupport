@@ -1,4 +1,3 @@
-%function cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInfo)
 function cal = calibrateUR3e_EyeInHandCamera(varargin)
 % CALIBRATEUR3E_EYEINHANDCAMERA calibrates a UR3e given a series of
 % checkerboard images and associated end-effector poses of the robot.
