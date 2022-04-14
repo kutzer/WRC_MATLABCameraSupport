@@ -1,6 +1,10 @@
-function cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInfo)
+%function cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInfo)
+function cal = calibrateUR3e_EyeInHandCamera(varargin)
 % CALIBRATEUR3E_EYEINHANDCAMERA calibrates a UR3e given a series of
 % checkerboard images and associated end-effector poses of the robot.
+%   cal = calibrateUR3e_EyeInHandCamera prompts user to select the 
+%   calibration file
+%
 %   cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInfo)
 %
 %   Input(s)
@@ -26,6 +30,8 @@ function cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInf
 % TODO - Allow users to select good images from entire calibration set! 
 % TODO - Prompt users to close all figures
 
+% -------------------------------------------------------------------------
+%{
 %% Check inputs
 if nargin < 4
     [fnameRobotInfo,pname] = uigetfile({'*.mat'},'Select calibration data file (e.g. URInfo_*.mat)');
@@ -495,6 +501,17 @@ for i = 1:numel(fig)
     figName = get(fig(i),'Name');
     [~,fileName,ext] = fileparts(fnames{i});
     fprintf('\t\tImage filename "%s%s" (Figure "%s")\n',fileName,ext,figName);
+end
+%}
+% -------------------------------------------------------------------------
+
+%% Perform common calibration steps
+out = processRobotCameraCalibration(varargin{:});
+
+%% Unpack variables
+varNames = fields(out);
+for i = 1:numel(varNames)
+    eval( sprintf('%s = out.(varNames{i});',varNames{i}) );
 end
 
 %% Define relative camera and end-effector pairs
