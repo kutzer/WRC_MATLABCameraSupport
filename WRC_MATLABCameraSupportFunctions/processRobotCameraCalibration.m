@@ -1,20 +1,22 @@
-function processRobotCameraCalibration(pname,bname_h,bname_f,fnameRobotInfo)
+function out = processRobotCameraCalibration(pname,bname_h,bname_f,fnameRobotInfo)
 % PROCESSROBOTCAMERACALIBRATION
+%   out = processRobotCameraCalibration(pname,bname_h,bname_f,fnameRobotInfo)
 %
 %   Input(s)
 %                pname - character array containing the folder name (aka
 %                        the path) containing the calibration images and 
 %                        robot pose data file
 %              bname_h - base filename for each handheld image
-%              bname_f - base filename for each world fixed image
+%              bname_f - base filename for each robot/camera image
 %       fnameRobotInfo - filename containing the robot pose data
 %
 %   Output(s)
+%       out - structured array packaging all variables used (this is a
+%             quick and lazy approach and should be updated)
 %
+%   See also calibrateUR3e_FixedCamera calibrateUR3e_EyeInHandCamera
 %
 %   M. Kutzer, 14Apr2022, USNA
-
-
 
 %% Check inputs
 if nargin == 3
@@ -522,4 +524,12 @@ for i = 1:numel(fig)
     figName = get(fig(i),'Name');
     [~,fileName,ext] = fileparts(fnames{i});
     fprintf('\t\tImage filename "%s%s" (Figure "%s")\n',fileName,ext,figName);
+end
+
+%% Package output
+% Package all variables in the workspace into one structured array
+% TODO - package only the variables needed by the calling function(s)
+varInfo = whos;
+for i = 1:numel(varInfo)
+    out.(varInfo(i).name) = eval( sprintf('%s;',varInfo(i).name) );
 end
