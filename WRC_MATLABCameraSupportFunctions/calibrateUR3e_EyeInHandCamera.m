@@ -1,7 +1,7 @@
 function cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInfo)
 % CALIBRATEUR3E_EYEINHANDCAMERA calibrates a UR3e given a series of
 % checkerboard images and associated end-effector poses of the robot.
-%   cal = CALIBRATEUR3E_EYEINHANDCAMERA(pname,bname_h,bname_f,fnameRobotInfo)
+%   cal = calibrateUR3e_EyeInHandCamera(pname,bname_h,bname_f,fnameRobotInfo)
 %
 %   Input(s)
 %                pname - character array containing the folder name (aka
