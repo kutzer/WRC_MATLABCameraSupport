@@ -149,7 +149,7 @@ nImagesTotal    = i;
 nImagesRobot    = j;
 nImagesHandheld = i-j;
 fprintf('%40s: %4d\n','Handheld checkerboard images found',nImagesHandheld);
-fprintf('%40s: %4d\n','World fixed checkerboard images found',nImagesRobot);
+fprintf('%40s: %4d\n','Robot/Camera checkerboard images found',nImagesRobot);
 fprintf('%40s: %4d\n','Total checkerboard images found',nImagesTotal);
 
 % Define an array of all index values to use for image/pose correspondence
@@ -320,7 +320,7 @@ if ~isempty(cal.A_c2m)
                 % Add calibration images
                 addHandheldImages(pname,bname_h,nImagesHandheld+1);
                 % Recursive function call
-                cal = calibrateUR3e_FixedCamera(pname,bname_h,bname_f,fnameRobotInfo);
+                cal = processRobotCameraCalibration(pname,bname_h,bname_f,fnameRobotInfo);
                 return
             otherwise
                 cal = [];
