@@ -44,7 +44,9 @@ function [cam,varargout] = initCamera
 %   28Jan2020 - Added callback function to preview
 %   08Mar2021 - Turned warnings off/on around imaqhwinfo call
 %   31Mar2022 - Allow user to select the camera format
-%   31Mar2022 - drawnow to eliminate "Event Dispatch Thread (EDT)" warning
+%   31Mar2022 - drawnow to reduce "Event Dispatch Thread (EDT)" warning
+%   14Apr2022 - Removed changing default exposure mode
+
 %% Declare persistent variable to declare new camera names
 % TODO - remove persistent and replace with device selection
 persistent callNum
@@ -180,12 +182,12 @@ catch
     warning('Unable to set "FrameRate" to 15 fps.');
 end
 
-try
-    set(src_obj, 'ExposureMode', 'manual');
-    set(src_obj, 'Exposure', -4);
-catch
-    warning('Unable to set "ExposureMode" to manual.');
-end
+% try
+%     set(src_obj, 'ExposureMode', 'manual');
+%     set(src_obj, 'Exposure', -4);
+% catch
+%     warning('Unable to set "ExposureMode" to manual.');
+% end
 
 %% Start camera and create preview
 triggerconfig(cam,'manual');
