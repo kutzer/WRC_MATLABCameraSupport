@@ -1,13 +1,13 @@
 function addHandheldImages(pname,bname_h,i0)
 % ADDHANDHELDIMAGES adds handheld images to a calibration folder
-%   ADDHANDHELDIMAGES(pname,bname_h,i0)
+%   ADDHANDHELDIMAGES(pname,bname_h,fnameRobotInfo,i0)
 %
 %   Input(s)
-%         pname - character array containing the folder name (aka the path)
-%                 containing the calibration images and robot pose data 
-%                 file
-%       bname_h - base filename for each handheld image
-%            i0 - starting image index value
+%            pname - character array containing the folder name (aka the path)
+%                    containing the calibration images and robot pose data 
+%                    file
+%          bname_h - base filename for each handheld image
+%               i0 - starting image index value
 %
 %   Output(s)
 %
@@ -28,9 +28,14 @@ if ~ischar(bname_h)
 end
 
 % Check for valid last image
-fname = fullfile(pname,sprintf('%s_%03d.png',bname_h,i0-1));
-if exist(fname,'file') ~= 2
-    error('The following file does not exist:\n\t"%s".',fname);
+if i0 > 1
+    % Check if other images exist
+    fname = fullfile(pname,sprintf('%s_%03d.png',bname_h,i0-1));
+    if exist(fname,'file') ~= 2
+        error('The following file does not exist:\n\t"%s".',fname);
+    end
+else
+    % Create all new images
 end
 
 % TODO - add extrinsics for image overlay?
