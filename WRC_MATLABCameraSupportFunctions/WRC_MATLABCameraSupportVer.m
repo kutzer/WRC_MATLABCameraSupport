@@ -24,11 +24,13 @@ function varargout = WRC_MATLABCameraSupportVer
 %   31Mar2022 - Included red ball segment/props functions
 %   31Mar2022 - Removed initCamera warnings, added adjustCamera GUI
 %   13Apr2022 - Added handheld images to fixedCamera calibration
+%   14Apr2022 - Created common function for use in fixed and eye-in-hand
+%               calibration
 
 A.Name = 'WRC MATLAB Camera Support';
-A.Version = '1.0.9';
+A.Version = '1.1.0';
 A.Release = '(R2019b)';
-A.Date = '13-Apr-2022';
+A.Date = '14-Apr-2022';
 A.URLVer = 1;
 
 msg{1} = sprintf('MATLAB %s Version: %s %s',A.Name, A.Version, A.Release);
