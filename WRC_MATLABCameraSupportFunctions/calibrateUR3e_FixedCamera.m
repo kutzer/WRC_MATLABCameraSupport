@@ -82,7 +82,7 @@ if ~exist('bname_h','var')
     end
 end
 if ~exist('bname_f','var')
-    if ~isempty('bname_h')
+    if ~isempty(bname_h)
         % Non-legacy file
         load( fullfile(pname,fnameRobotInfo),'bname_f' );
     else
@@ -97,7 +97,7 @@ end
 %% Allow users to specify file(s) if no base filenames are available
 if ~exist('bname_h','var')
     [bname,~] = uigetfile({'*.png'},'Select one handheld checkerboard calibration image',pname);
-    if pname == 0
+    if bname == 0
         warning('Action cancelled by user.');
         cal = [];
         return
@@ -108,7 +108,7 @@ end
 
 if ~exist('bname_f','var')
     [bname,~] = uigetfile({'*.png'},'Select one end-effector fixed checkerboard calibration image',pname);
-    if pname == 0
+    if bname == 0
         warning('Action cancelled by user.');
         cal = [];
         return
@@ -311,16 +311,17 @@ if ~isempty(cal.A_c2m)
             end
         end
         str = sprintf(['%s\n'...
-            'Try adding handheld images with larger checkerboard pose variations.\n'],str);
+            'Try adding handheld images with larger checkerboard pose variations.\n\n'],str);
         fprintf(2,str);
+        
+        % Close old figures
+        delete([h1,h2]);
         
         % Prompt user to add more handheld images
         rsp = questdlg('Would you like to try to add more handheld images?',...
             'Add Images','Yes','No','Yes');
         switch rsp
             case 'Yes'
-                % Close old figures
-                delete([h1,h2]);
                 % Add calibration images
                 addHandheldImages(pname,bname_h,nImagesHandheld+1);
                 % Recursive function call
@@ -329,11 +330,11 @@ if ~isempty(cal.A_c2m)
             otherwise
                 cal = [];
                 fprintf([...
-                    'Action cancelled by user\n\n'
+                    'Action cancelled by user\n\n',...
                     'No valid calibration found.\n']);
                 return
         end
-        
+
     end
 end
 
