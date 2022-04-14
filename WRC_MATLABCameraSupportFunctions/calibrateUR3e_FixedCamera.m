@@ -36,6 +36,11 @@ function cal = calibrateUR3e_FixedCamera(varargin)
 
 %% Perform common calibration steps
 out = processRobotCameraCalibration(varargin{:});
+if isempty(out)
+    % No valid calibration found
+    cal = [];
+    return
+end
 
 %% Unpack variables
 varNames = fields(out);
