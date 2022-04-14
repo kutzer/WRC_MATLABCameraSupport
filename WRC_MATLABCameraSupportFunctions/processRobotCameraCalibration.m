@@ -30,7 +30,7 @@ if nargin < 3
     [fnameRobotInfo,pname] = uigetfile({'*.mat'},'Select calibration data file (e.g. URInfo_*.mat)');
     if pname == 0
         warning('Action cancelled by user.');
-        cal = [];
+        out = [];
         return
     end
 end
@@ -88,7 +88,7 @@ if ~exist('bname_h','var')
     [bname,~] = uigetfile({'*.png'},'Select one handheld checkerboard calibration image',pname);
     if bname == 0
         warning('Action cancelled by user.');
-        cal = [];
+        out = [];
         return
     end
     % TODO - make this more robust!
@@ -99,7 +99,7 @@ if ~exist('bname_f','var')
     [bname,~] = uigetfile({'*.png'},'Select one end-effector fixed checkerboard calibration image',pname);
     if bname == 0
         warning('Action cancelled by user.');
-        cal = [];
+        out = [];
         return
     end
     % TODO - make this more robust!
@@ -187,7 +187,7 @@ squareSize = inputdlg({'Enter square size in millimeters'},'SquareSize',...
     [1,35],{'10.00'});
 if numel(squareSize) == 0
     warning('Action cancelled by user.');
-    cal = [];
+    out = [];
     return
 end
 squareSize = str2double( squareSize{1} );
@@ -204,7 +204,7 @@ list = {'Standard','Fisheye'};
     'SelectionMode','single','ListString',list);
 if ~tf
     warning('Action cancelled by user.');
-    cal = [];
+    out = [];
     return
 end
 
@@ -317,17 +317,31 @@ if ~isempty(cal.A_c2m)
             'Add Images','Yes','No','Yes');
         switch rsp
             case 'Yes'
+                % Create handheld file base name if it does not exist
+                if isempty(bname_h)
+                    bname_h = [bname_f(1:3),'h_',bname_f(4:end)];
+                    updateFnameRobotInfo = true;
+                else
+                    updateFnameRobotInfo = false;
+                end
+                
                 % Add calibration images
                 addHandheldImages(pname,bname_h,nImagesHandheld+1);
+                
+                % Add handheld file base name to calibration file
+                if updateFnameRobotInfo
+                    save(fullfile(pname,fnameRobotInfo),'bname_h','-append');
+                    save(fullfile(pname,fnameRobotInfo),'bname_f','-append');
+                end
+
                 % Recursive function call
-                cal = processRobotCameraCalibration(pname,bname_h,bname_f,fnameRobotInfo);
+                out = processRobotCameraCalibration(pname,bname_h,bname_f,fnameRobotInfo);
                 return
             otherwise
-                cal = [];
+                out = [];
                 fprintf([...
                     'Action cancelled by user\n\n',...
                     'No valid calibration found.\n']);
-                out = [];
                 return
         end
 
