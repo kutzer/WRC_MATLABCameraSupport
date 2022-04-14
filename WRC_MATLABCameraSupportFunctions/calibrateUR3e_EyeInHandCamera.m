@@ -576,22 +576,14 @@ cam3D = plotCamera('Parent',axs3D,'Location',H_c2a(1:3,4).',...
 h_e2a = triad('Parent',axs3D,'Matrix',H_c2e,'Scale',sc,...
     'AxisLabels',{'x_e','y_e','z_e'});
 
-% TODO - Address this error! 
-% numel(cal.H_e2o)
-% numel(cal.H_g2c)
-% numel(cal.H_c2e)
-for i = 1:numel(cal.H_c2e)
-    try
-        H_c2e = invSE( cal.H_e2o{i} )*cal.H_g2o*invSE( cal.H_g2c{i} );
-        xyz = 'xyz';
-        for j = 1:3
-            lbls{j} = sprintf('%s_{o_%d}',xyz(j),i);
-        end
-        h_c2e(i) = triad('Parent',h_e2a,'Matrix',H_c2e,'Scale',sc);%,...
-        %'AxisLabels',{lbls{1},lbls{2},lbls{3}});
-    catch
-        % Exception - See TODO
+for i = 1:numel(cal.H_g2c)
+    H_c2e = invSE( cal.H_e2o{i} )*cal.H_g2o*invSE( cal.H_g2c{i} );
+    xyz = 'xyz';
+    for j = 1:3
+        lbls{j} = sprintf('%s_{o_%d}',xyz(j),i);
     end
+    h_c2e(i) = triad('Parent',h_e2a,'Matrix',H_c2e,'Scale',sc);%,...
+    %'AxisLabels',{lbls{1},lbls{2},lbls{3}});
 end
 
 h_c2e_mu = triad('Parent',h_e2a,'Matrix',H_c2e,'Scale',sc,...
