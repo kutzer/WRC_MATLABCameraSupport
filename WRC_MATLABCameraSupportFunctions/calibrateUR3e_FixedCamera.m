@@ -166,7 +166,7 @@ nImagesRobot = i-j;
 % Define an array of all index values to use for image/pose correspondence
 %   NOTE: Only images with the basename bname_f are associated with
 %         image/pose correspondences
-idx = 1:i;  % Indices of all images
+imageIdx = 1:i;  % Indices of all images
 
 %% Process images
 % Detect checkerboards in images
@@ -185,9 +185,9 @@ fprintf('COMPLETE\n');
 % Update list of images used
 fnames = fnames(imagesUsed);
 % Update list of indices used
-idx = idx(imagesUsed);
+imageIdx = imageIdx(imagesUsed);
 % Images used
-fprintf('Images with detected checkerboards: %d\n',numel(idx));
+fprintf('Images with detected checkerboards: %d\n',numel(imageIdx));
 
 % Read the first image to obtain image size
 originalImage = imread(fnames{1});
@@ -244,9 +244,9 @@ end
 % Update list of images used
 fnames = fnames(imagesUsed);
 % Update list of indices used
-idx = idx(imagesUsed);
+imageIdx = imageIdx(imagesUsed);
 % Images used
-fprintf('Images used in calibration: %d\n',numel(idx));
+fprintf('Images used in calibration: %d\n',numel(imageIdx));
 
 % Update P_m
 P_m = P_m(:,:,imagesUsed);
@@ -349,14 +349,18 @@ end
 % pairs between extrinsics and forward kinematics (and joint
 % configurations)
 calIdx = 0;
+robotIdx = [];
+handheldIdx = [];
 fprintf('\nDefining AX = XB correspondence...\n');
 fprintf('\tIgnoring handheld images:\n');
-for i = 1:numel(idx)
+for i = 1:numel(imageIdx)
     % Find image index in i/j index correspondence
-    bin = ij(:,1) == idx(i);
+    bin = ij(:,1) == imageIdx(i);
     if nnz(bin) ~= 1
         [~,fileName,ext] = fileparts(fnames{i});
         fprintf('\t\tImage filename "%s%s"\n',fileName,ext);
+        % Append handheld image index
+        handheldIdx(end+1) = i;
         continue
     end
 
@@ -364,11 +368,11 @@ for i = 1:numel(idx)
     calIdx = calIdx + 1;
     % Define fixed checkerboard image index
     j = ij(bin,2);
-
+    
+    % Append handheld image index
+    robotIdx(calIdx) = i;
     % Calibration image name
     calFnames{calIdx} = fnames{i};
-    % Calibration image index
-    cal_i(calIdx) = i;
     % Camera extrinsics ("grid" frame relative to camera frame)
     cal.H_g2c{calIdx} = [...
         cameraParams.RotationMatrices(:,:,i).', ...
@@ -388,7 +392,8 @@ X_g(3,:) = 0;
 X_g(4,:) = 1;
 for i = 1:numel(cal.H_g2c)
     % Create figure and axes
-    fig(i) = figure('Name',sprintf('Image %02d',i),'Tag',sprintf('%d',cal_i(i)));
+    fig(i) = figure('Name',sprintf('Image %02d',robotIdx(i)),...
+        'Tag',sprintf('%d',robotIdx(i)),'NumberTitle','off');
     axs(i) = axes('Parent',fig(i));
     % Load image
     im = imread(calFnames{i});
@@ -443,7 +448,7 @@ for i = 1:numel(cal.H_g2c)
     err = sum( sqrt(sum(err.^2,1)),2 )/size(err,2);
     ttl(i) = title(axs(i),...
         sprintf('Reprojection RMS Error: %.2f pixels',err));
-    
+
     % Plot segmented point
     plt_m(i) = plot(axs(i),X_m(1,2:end),X_m(2,2:end),...
         'og','MarkerSize',8,'LineWidth',1.5);
@@ -505,6 +510,7 @@ for i = 1:numel(fig)
         fprintf('Removing Image %d\n',i);
     end
 end
+robotIdx(bin) = [];
 P_m(:,:,bin) = [];
 P_m_cam(:,:,bin) = [];
 cal.H_g2c(:,bin) = [];
@@ -652,7 +658,9 @@ for i = 1:n
     delete(ttl(i));
     ttl(i) = title(axs(i),...
         sprintf('Reprojection RMS Error: %.2f pixels',err));
-    
+    % Append error
+    errALL(i) = err;
+
     % Plot reprojected points
     plt_m_ext(i) = plot(axs(i),X_m_ext(1,2:end),X_m_ext(2,2:end),...
         'xc','MarkerSize',8,'LineWidth',1.5);
@@ -697,3 +705,8 @@ for i = 1:n
     centerfig(fig(i));
     drawnow
 end
+
+%% Update bar graph
+hold(reproj.Axes,'on');
+reproj.RobotBar = bar(robotIdx,errALL,'Parent',reproj.Axes,'BarWidth',0.4,...
+    'FaceColor','r','FaceAlpha',0.5);
