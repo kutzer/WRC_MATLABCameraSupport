@@ -1,4 +1,5 @@
-function cal = calibrateUR3e_FixedCamera(pname,bname_h,bname_f,fnameRobotInfo)
+%function cal = calibrateUR3e_FixedCamera(pname,bname_h,bname_f,fnameRobotInfo)
+function cal = calibrateUR3e_FixedCamera(varargin)
 % CALIBRATEUR3E_FIXEDCAMERA calibrates a UR3e given a series of
 % checkerboard images and associated end-effector poses of the robot.
 %   cal = calibrateUR3e_FixedCamera(pname,bname_h,bname_f,fnameRobotInfo)
@@ -30,6 +31,8 @@ function cal = calibrateUR3e_FixedCamera(pname,bname_h,bname_f,fnameRobotInfo)
 % TODO - Allow users to select good images from entire calibration set! 
 % TODO - Prompt users to close all figures
 
+% ------ BEGIN COMMON CODE ------------------------------------------------
+%{
 %% Check inputs
 if nargin == 3
     % Legacy Compatibility
@@ -537,8 +540,17 @@ for i = 1:numel(fig)
     [~,fileName,ext] = fileparts(fnames{i});
     fprintf('\t\tImage filename "%s%s" (Figure "%s")\n',fileName,ext,figName);
 end
+%}
+% ------ END COMMON CODE --------------------------------------------------
 
-% END COMMON CODE!!!
+%% Perform common calibration steps
+out = processRobotCameraCalibration(varargin{:});
+
+%% Unpack variables
+varNames = fields(out);
+for i = 1:numel(varNames)
+    eval( sprintf('%s = out.(varNames{i});',varNames{i}) );
+end
 
 %% Define relative camera and end-effector pairs
 % This defines all combinations of relative grid poses and relative
