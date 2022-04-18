@@ -30,6 +30,7 @@ function cal = calibrateUR3e_FixedCamera(varargin)
 %   31Mar2022 - Account for partial detections
 %   13Apr2022 - Added handheld data sets and meanSE ZERO = 1e-8
 %   14Apr2022 - Isolated common code into processRobotCameraCalibration
+%   18Apr2022 - Account for no A/B pairs
 
 % TODO - Allow users to select good images from entire calibration set! 
 % TODO - Prompt users to close all figures
@@ -84,6 +85,17 @@ for i = 1:n
     end
 end
 fprintf('\nNumber of A/B pairs: %d\n',numel(A));
+
+% Check for no A/B pairs
+if numel(A) == 0
+    fprintf(2,'\nNo A/B pairs available, try adjusting calibration parameters and/or recalibrating\n');
+    cal = [];
+    % Delete extrinsics figure
+    delete(extrin.Figure);
+    % Delete reprojection bargraph figure
+    delete(reproj.Figure);
+    return
+end
 
 %% Solve A * X = X * B
 X = solveAXeqXBinSE(A,B);
