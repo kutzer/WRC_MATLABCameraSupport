@@ -18,6 +18,8 @@ function out = processRobotCameraCalibration(pname,bname_h,bname_f,fnameRobotInf
 %
 %   M. Kutzer, 14Apr2022, USNA
 
+% Updates
+%               18
 %% Check inputs
 if nargin == 3
     % Legacy Compatibility
@@ -270,7 +272,8 @@ switch list{listIdx}
     case 'Standard'
         cal.A_c2m = cameraParams.IntrinsicMatrix.';
     case 'Fisheye'
-        fprintf('Fisheye does not provide an intrinsic matrix!\n')
+        fprintf('\n!!! Fisheye Model Selected !!!\n\n')
+        fprintf('Fisheye camera model does not provide an intrinsic matrix!\n')
         fprintf('\tUse imagePoints = worldToImage(cal.cameraParams.Intrinsics,H_o2c(1:3,1:3).'',H_o2c(1:3,4).'',P_o(1:3,:).'')\n')
         cal.A_c2m = [];
 end
@@ -389,11 +392,19 @@ for i = 1:numel(imageIdx)
     cal.q(:,calIdx) = q(:,j);
 end
 
+% Display "no handheld" 
+if isempty(handheldIdx)
+    fprintf('\t\tNo handheld images used in calibration\n\n');
+else
+    fprintf('\n');
+end
+
 %% Display calibration results
 % Define grid-referenced points
 X_g = P_g.';
 X_g(3,:) = 0;
 X_g(4,:) = 1;
+tf_noCheckerboard = false(1,numel(cal.H_g2c));
 for i = 1:numel(cal.H_g2c)
     % Create figure and axes
     fig(i) = figure('Name',sprintf('Image %02d',robotIdx(i)),...
@@ -402,7 +413,17 @@ for i = 1:numel(cal.H_g2c)
     % Load image
     im = imread(calFnames{i});
     % Undistort image
-    uIm = undistortImage(im, cameraParams);
+    switch list{listIdx}
+        case 'Standard'
+            uIm = undistortImage(im, cameraParams);
+        case 'Fisheye'
+            % Debug code
+            assignin('base','cameraParams',cameraParams);
+            assignin('base','im',im);
+            % Undistort fisheye image & recover virtual pinhole intrinsics
+            [uIm,vPinholeIntrinsics] = ...
+                undistortFisheyeImage(im, cameraParams.Intrinsics);
+    end
     % Display undistorted image
     img(i) = imshow(uIm,'Parent',axs(i));
     axis(axs(i),'tight');
@@ -440,7 +461,7 @@ for i = 1:numel(cal.H_g2c)
             X_m_cam = sX_m_cam./sX_m_cam(3,:);
         case 'Fisheye'
             % Project points
-            X_m_cam = worldToImage(cal.cameraParams.Intrinsics,...
+            X_m_cam = worldToImage(vPinholeIntrinsics,...
                 H_g2c_cam(1:3,1:3).',H_g2c_cam(1:3,4).',X_g(1:3,:).').';
             X_m_cam(3,:) = 1;
     end
@@ -495,16 +516,21 @@ for i = 1:numel(cal.H_g2c)
     
     % Automatically remove partial detections
     if badFig
+        tf_noCheckerboard(i) = true;
         delete(fig(i));
+    else
+        centerfig(fig(i));
     end
-    centerfig(fig(i));
     drawnow
 end
 
 %% Prompt user to close "bad" images
-f = msgbox('Close all bad calibration images.','Refine calibration');
-while ishandle(f)
-    drawnow
+if nnz(tf_noCheckerboard) < numel(tf_noCheckerboard)
+    % If images remain, prompt user
+    f = msgbox('Close all bad calibration images.','Refine calibration');
+    while ishandle(f)
+        drawnow
+    end
 end
 
 %% Define indices to remove
@@ -512,9 +538,16 @@ bin = false(1,size(fig,2));
 for i = 1:numel(fig)
     if ~ishandle(fig(i))
         bin(1,i) = true;
-        fprintf('Removing Image %d\n',i);
+        if tf_noCheckerboard
+            fprintf('Removing Image %3d [Removed automatically: no/partial checkerboard detected in dewarped image]\n',i);
+        else
+            fprintf('Removing Image %3d [Removed by user]\n',i);
+        end
     end
 end
+fprintf('\n');
+
+% Remove array elements
 robotIdx(bin) = [];
 P_m(:,:,bin) = [];
 P_m_cam(:,:,bin) = [];
@@ -535,11 +568,16 @@ con_m0_cam(:,bin) = [];
 lgnd(:,bin) = [];
 
 fprintf('\tRemaining Images:\n');
-for i = 1:numel(fig)
-    figName = get(fig(i),'Name');
-    [~,fileName,ext] = fileparts(fnames{i});
-    fprintf('\t\tImage filename "%s%s" (Figure "%s")\n',fileName,ext,figName);
+if nnz(bin) == numel(bin)
+    fprintf('\t\tNo images available for calibration\n');
+else
+    for i = 1:numel(fig)
+        figName = get(fig(i),'Name');
+        [~,fileName,ext] = fileparts(fnames{i});
+        fprintf('\t\tImage filename "%s%s" (Figure "%s")\n',fileName,ext,figName);
+    end
 end
+fprintf('\n');
 
 %% Package output
 % Package all variables in the workspace into one structured array
