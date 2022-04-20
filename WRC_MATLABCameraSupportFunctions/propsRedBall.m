@@ -29,6 +29,9 @@ function [p_m,z_c,ps_m] = propsRedBall(im,A_c2m,r)
 %
 %   M. Kutzer, 10Mar2022, USNA
 
+% Updates
+%   20Apr2022 - Corrected p_m dimension consistency
+
 %% Check inputs
 narginchk(1,3);
 
@@ -72,7 +75,11 @@ if ~isempty(stats)
     p_m(3,:) = 1;
 else
     % No ball segmented
-    p_m = [nan; nan; nan; 1];
+    if ~isempty(A_c2m)
+        p_m = [nan; nan; nan; 1];
+    else
+        p_m = [nan; nan; 1];
+    end
     z_c = [];
     ps_m = polyshape(nan,nan);
     return
