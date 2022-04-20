@@ -21,7 +21,7 @@ function [p_m,z_c,ps_m] = propsRedBall(im,A_c2m,r)
 %
 %   Output(s)
 %       p_m  - 3x1 array defining the pixel coordinate associated with the
-%             centroid of the sphere in the image
+%              centroid of the sphere in the image
 %       z_c  - scalar value defining the approximate distance of the sphere
 %              from the camera along the z-axis of the camera frame. If no
 %              intrinsics and/or radius is provided, z_c = [].
@@ -75,11 +75,7 @@ if ~isempty(stats)
     p_m(3,:) = 1;
 else
     % No ball segmented
-    if ~isempty(A_c2m)
-        p_m = [nan; nan; nan; 1];
-    else
-        p_m = [nan; nan; 1];
-    end
+    p_m = [nan; nan; 1];
     z_c = [];
     ps_m = polyshape(nan,nan);
     return
