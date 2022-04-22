@@ -32,6 +32,24 @@ function [cam,varargout] = initCamera
 %           -> login to mathworks using email and password
 %           -> Install
 %
+%   Example:
+%       % Initialize camera
+%       [init,cam] = initCamera;
+%       % Adjust camera parameters
+%       adjustCamera(cam);
+%
+%   Recommended steps to adjust an Imaging Source DFK 23U618 with 
+%   mechanical aperture lens using the adjustCamera GUI:
+%       (1) Change ExposureMode and GainMode to "Auto", click "Apply"
+%       (2) Fully open the lens aperature (e.g. top ring on lens)
+%       (3) Wait for the camera to auto adjust
+%       (4) Change ExposureMode to manual and GainMode to manual, click 
+%           "Apply"
+%       (5) Close the aperature until the image in the preview is a good
+%           constrast
+%       (6) Adjust focus as necessary
+%       (7) Click "Exit"
+%
 %   See also adjustCamera recoverPreviewHandles recoverPreviewTime
 %
 %   M. Kutzer, 02Mar2016, USNA
@@ -48,6 +66,8 @@ function [cam,varargout] = initCamera
 %   31Mar2022 - Allow user to select the camera format
 %   31Mar2022 - drawnow to reduce "Event Dispatch Thread (EDT)" warning
 %   14Apr2022 - Removed changing default exposure mode
+%   22Apr2022 - Added example
+%   22Apr2022 - Removed changing default frame rate
 
 %% Declare persistent variable to declare new camera names
 % TODO - remove persistent and replace with device selection
@@ -177,12 +197,12 @@ set(cam,'Name',sprintf('camera%d',callNum));
 callNum = callNum + 1;
 
 %% Update camera properties
-src_obj = getselectedsource(cam);
-try
-    set(src_obj, 'FrameRate', '15.0000');
-catch
-    warning('Unable to set "FrameRate" to 15 fps.');
-end
+% src_obj = getselectedsource(cam);
+% try
+%     set(src_obj, 'FrameRate', '15.0000');
+% catch
+%     warning('Unable to set "FrameRate" to 15 fps.');
+% end
 
 % try
 %     set(src_obj, 'ExposureMode', 'manual');
@@ -195,6 +215,7 @@ end
 triggerconfig(cam,'manual');
 start(cam);
 varargout = packageVarOut(cam,nargout);
+
 end
 
 %% Embedded function(s)

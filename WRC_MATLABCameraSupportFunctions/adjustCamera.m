@@ -5,12 +5,31 @@ function adjustCamera(cam)
 %   Input(s)
 %       cam - video input object
 %
+%   Example:
+%       % Initialize camera
+%       [init,cam] = initCamera;
+%       % Adjust camera parameters
+%       adjustCamera(cam);
+%
+%   Recommended steps to adjust an Imaging Source DFK 23U618 with 
+%   mechanical aperture lens using the adjustCamera GUI:
+%       (1) Change ExposureMode and GainMode to "Auto", click "Apply"
+%       (2) Fully open the lens aperature (e.g. top ring on lens)
+%       (3) Wait for the camera to auto adjust
+%       (4) Change ExposureMode to manual and GainMode to manual, click 
+%           "Apply"
+%       (5) Close the aperature until the image in the preview is a good
+%           constrast
+%       (6) Adjust focus as necessary
+%       (7) Click "Exit"
+%
 %   See also initCamera
 %
 %   M. Kutzer, 31Mar2022, USNA
 
 % Updates
 %   07Apr2022 - Updated to account for small monitors
+%   22Apr2022 - Added example
 
 debugON = false;
 
