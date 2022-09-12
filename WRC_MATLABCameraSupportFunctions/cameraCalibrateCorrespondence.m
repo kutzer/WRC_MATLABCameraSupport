@@ -1,13 +1,21 @@
-function varargout = cameraCalibrateCorrespondence(pName)
+function varargout = cameraCalibrateCorrespondence(pName,varargin)
 % CAMERACALIBRATECORRESPONDENCE runs MATLAB camera calibration tools
 % returning information to establish a correspondence with other data
 % set(s).
 %   [A_c2m,H_f2c,corIndexes,camParams,info] =...
 %                                     cameraCalibrateCorrespondence(pName)
 %
+%   [...] = cameraCalibrateCorrespondence(___,squareSize)
+%
+%   [...] = cameraCalibrateCorrespondence(___,lensType)
+%
 %   Input(s)
-%       fname - [OPTIONAL] string defining folder path containing m
-%               calibration images
+%       fname      - [OPTIONAL] string defining folder path containing m
+%                    calibration images
+%       squareSize - [OPTIONAL] positive scalar value defining square size 
+%                    in millimeters
+%       lensType   - [OPTIONAL] string argument defining lens type
+%                    {'standard','fisheye'}
 %
 %   Output(s)
 %       A_c2m      - 3x3 array defining camera intrinsics
@@ -26,11 +34,32 @@ function varargout = cameraCalibrateCorrespondence(pName)
 %
 %   M. Kutzer, 12Sep2022, USNA
 
+%% Set default(s)
+squareSize = [];
+lensType   = [];
+
 %% Check input(s)
-narginchk(0,1);
+narginchk(0,3);
 
 if nargin < 1
     pName = uigetdir;
+end
+
+for i = 1:numel(varargin)
+    if isnumeric( varargin{i} )
+        if numel(varargin{i}) == 1 && nnz(varargin{i} > 0) == 1
+            squareSize = varargin{i};
+        end
+        continue
+    end
+    
+    switch lower( varargin{i} )
+        case {'standard','fisheye'}
+            lensType = char( varargin{i} );
+            continue
+    end
+
+    warning('Ignoring input %d.',i+1);
 end
 
 %% Get supported image formats
@@ -186,34 +215,39 @@ originalImage = imread(imageNames{1});
 [mrows, ncols, ~] = size(originalImage);
 
 % Prompt user for Square Size
-squareSize = inputdlg({'Enter square size in millimeters'},'SquareSize',...
-    [1,35],{'10.00'});
-if numel(squareSize) == 0
-    warning('Action cancelled by user.');
-    out = [];
-    return
+if isempty(squareSize)
+    squareSize = inputdlg({'Enter square size in millimeters'},'SquareSize',...
+        [1,35],{'10.00'});
+    if numel(squareSize) == 0
+        warning('Action cancelled by user.');
+        out = [];
+        return
+    end
+    squareSize = str2double( squareSize{1} );
 end
-squareSize = str2double( squareSize{1} );
 
 % Generate coordinates of the corners of the squares
 %   relative to the "grid frame"
 P_g = generateCheckerboardPoints(boardSize, squareSize);
 
 % Prompt user for Camera Model
-list = {'Standard','Fisheye'};
-[listIdx,tf] = listdlg('PromptString',...
-    {'Select Camera Model',...
-    'Only one model can be selected at a time',''},...
-    'SelectionMode','single','ListString',list);
-if ~tf
-    warning('Action cancelled by user.');
-    out = [];
-    return
+if isempty(lensType)
+    list = {'Standard','Fisheye'};
+    [listIdx,tf] = listdlg('PromptString',...
+        {'Select Camera Model',...
+        'Only one model can be selected at a time',''},...
+        'SelectionMode','single','ListString',list);
+    if ~tf
+        warning('Action cancelled by user.');
+        out = [];
+        return
+    end
+    lensType = lower(list{listIdx});
 end
 
 % Calibrate the camera
-switch list{listIdx}
-    case 'Standard'
+switch lensType
+    case 'standard'
         % Standard camera calibration
         fprintf('\nCalibrating using standard camera model...');
         [camParams, imagesUsed, estimationErrors] = ...
@@ -223,7 +257,7 @@ switch list{listIdx}
             'InitialIntrinsicMatrix', [], 'InitialRadialDistortion', [], ...
             'ImageSize', [mrows, ncols]);
         fprintf('COMPLETE\n\n');
-    case 'Fisheye'
+    case 'fisheye'
         % Fisheye camera calibration
         fprintf('\nCalibrating using fisheye camera model...');
         [camParams, imagesUsed, estimationErrors] = ...
@@ -267,10 +301,10 @@ showExtrinsics(camParams,'CameraCentric');
 
 %% Package camera parameters and intrinsics into output struct
 % Package intrinsics
-switch list{listIdx}
-    case 'Standard'
+switch lensType
+    case 'standard'
         A_c2m = camParams.IntrinsicMatrix.';
-    case 'Fisheye'
+    case 'fisheye'
         fprintf('\n!!! Fisheye Model Selected !!!\n\n')
         fprintf('Fisheye camera model does not provide an intrinsic matrix!\n')
         fprintf('\tUse imagePoints = worldToImage(cal.camParams.Intrinsics,H_o2c(1:3,1:3).'',H_o2c(1:3,4).'',P_o(1:3,:).'')\n')
