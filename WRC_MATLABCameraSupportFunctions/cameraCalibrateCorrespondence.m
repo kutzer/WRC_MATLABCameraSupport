@@ -53,7 +53,8 @@ switch lower( class(pName) )
         % User specified folder location of calibration images
     case 'cell'
         % User specified image names
-        fprintf('User specified image names, assuming correlation indexing is 1:numel(imageNames).\n');
+        fprintf(['User specified image names, assuming correlation ',...
+            'indexing is 1:%d.\n'],numel(pName));
         imageNames = pName;
         corIndexes = 1:numel(pName);
 end
