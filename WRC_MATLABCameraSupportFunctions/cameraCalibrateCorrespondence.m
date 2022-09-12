@@ -55,7 +55,7 @@ for i = 1:numel(varargin)
     
     switch lower( varargin{i} )
         case {'standard','fisheye'}
-            lensType = char( varargin{i} );
+            lensType = lower( char( varargin{i} ) );
             continue
     end
 
