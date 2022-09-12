@@ -10,7 +10,8 @@ function varargout = cameraCalibrateCorrespondence(pName,varargin)
 %   [...] = cameraCalibrateCorrespondence(___,lensType)
 %
 %   Input(s)
-%       fname      - [OPTIONAL] string defining folder path containing m
+%       pName      - [OPTIONAL] string defining folder path containing m
+%                    calibration images OR a cell array defining
 %                    calibration images
 %       squareSize - [OPTIONAL] positive scalar value defining square size 
 %                    in millimeters
@@ -35,14 +36,26 @@ function varargout = cameraCalibrateCorrespondence(pName,varargin)
 %   M. Kutzer, 12Sep2022, USNA
 
 %% Set default(s)
-squareSize = [];
-lensType   = [];
+squareSize  = [];
+lensType    = [];
+imageNames  = {};
+corIndexes  = [];
 
 %% Check input(s)
 narginchk(0,3);
 
 if nargin < 1
     pName = uigetdir;
+end
+
+switch lower( class(pName) )
+    case {'string','char'}
+        % User specified folder location of calibration images
+    case 'cell'
+        % User specified image names
+        fprintf('User specified image names, assuming correlation indexing is 1:numel(imageNames).\n');
+        imageNames = pName;
+        corIndexes = 1:numel(pName);
 end
 
 for i = 1:numel(varargin)
@@ -62,129 +75,137 @@ for i = 1:numel(varargin)
     warning('Ignoring input %d.',i+1);
 end
 
-%% Get supported image formats
-imExts = {};
-imExtStruct = imformats;
-for i = 1:numel(imExtStruct)
-    imExt = imExtStruct(i).ext;
-    for j = 1:numel(imExt)
-        imExts{end+1} = imExt{j};
+%% Get image names
+if isempty(imageNames)
+    % Get supported image formats
+    imExts = {};
+    imExtStruct = imformats;
+    for i = 1:numel(imExtStruct)
+        imExt = imExtStruct(i).ext;
+        for j = 1:numel(imExt)
+            imExts{end+1} = imExt{j};
+        end
     end
-end
 
-%% Get folder contents & identify images
-D = dir(pName);
-idx = find(~[D.isdir]);
-tfImage = false(1,numel(idx));
-for i = 1:numel(idx)
-    [~,bName{i},fExt{i}] = fileparts( D( idx(i) ).name );
-    tfImage(i) = nnz( matches(imExts,fExt{i}(2:end)) ) > 0;
-end
-
-%% Isolate images
-bName = bName(tfImage);
-fExt = fExt(tfImage);
-
-% Display available image formats
-u_fExt = unique(fExt);
-for i = 1:numel(u_fExt)
-    n_fExt(i) = nnz( matches(fExt,u_fExt{i}) );
-    fprintf('*%s - %d found.\n',u_fExt{i},n_fExt(i));
-end
-
-% Select most prevalent format
-% TODO - prompt user?
-[~,idx] = max(n_fExt);
-tfFormat = matches(fExt,u_fExt{idx});
-
-bName = bName(tfFormat);
-fExt  =  fExt(tfFormat);
-
-% Keep the unique image format
-fExt = fExt{1};
-
-%% Isolate base names from image numbers
-n = numel(bName);
-baseName   =  cell(1,n);
-imgNumStr  =  cell(1,n);
-imgNum     = zeros(1,n);
-nNumStr    = zeros(1,n);
-tfNumbered = false(1,n);
-for i = 1:n
-    splitStr = regexp(bName{i},'\_','split');
-    switch numel(splitStr)
-        case 2
-            baseName{i}   = splitStr{1};
-            imgNumStr{i}  = splitStr{2};
-            imgNum(i)     = str2double(imgNumStr{i});
-            nNumStr(i)    = numel(imgNumStr{i});
-            tfNumbered(i) = true;
-        otherwise
-            fprintf('Ignoring %s%s - Bad Format.\n',bName{i},fExt);
+    % Get folder contents & identify images
+    D = dir(pName);
+    idx = find(~[D.isdir]);
+    tfImage = false(1,numel(idx));
+    for i = 1:numel(idx)
+        [~,bName{i},fExt{i}] = fileparts( D( idx(i) ).name );
+        tfImage(i) = nnz( matches(imExts,fExt{i}(2:end)) ) > 0;
     end
-end
 
-baseName  =  baseName(tfNumbered);
-imgNumStr = imgNumStr(tfNumbered);
-imgNum    =    imgNum(tfNumbered);
+    % Isolate images
+    bName = bName(tfImage);
+    fExt = fExt(tfImage);
 
-% Find unique base names
-u_baseName = unique(baseName);
-for i = 1:numel(u_baseName)
-    n_baseName(i) = nnz( matches(baseName,u_baseName{i}) );
-    fprintf('%s_*%s - %d found.\n',u_baseName{i},fExt,n_baseName(i));
-end
+    % Display available image formats
+    u_fExt = unique(fExt);
+    for i = 1:numel(u_fExt)
+        n_fExt(i) = nnz( matches(fExt,u_fExt{i}) );
+        fprintf('*%s - %d found.\n',u_fExt{i},n_fExt(i));
+    end
 
-% Select most prevalent baseName
-% TODO - prompt user?
-[~,idx] = max(n_baseName);
-tfbaseName = matches(baseName,u_baseName{idx});
+    % Select most prevalent format
+    % TODO - prompt user?
+    [~,idx] = max(n_fExt);
+    tfFormat = matches(fExt,u_fExt{idx});
 
-baseName  =  baseName(tfbaseName);
-imgNumStr = imgNumStr(tfbaseName);
-imgNum    =    imgNum(tfbaseName);
-nNumStr   =   nNumStr(tfbaseName);
+    bName = bName(tfFormat);
+    fExt  =  fExt(tfFormat);
 
-% Keep the uniqe base name
-baseName = baseName{1};
+    % Keep the unique image format
+    fExt = fExt{1};
 
-% TODO - check nNumStr for consistency
+    % Isolate base names from image numbers
+    n = numel(bName);
+    baseName   =  cell(1,n);
+    imgNumStr  =  cell(1,n);
+    imgNum     = zeros(1,n);
+    nNumStr    = zeros(1,n);
+    tfNumbered = false(1,n);
+    for i = 1:n
+        splitStr = regexp(bName{i},'\_','split');
+        switch numel(splitStr)
+            case 2
+                baseName{i}   = splitStr{1};
+                imgNumStr{i}  = splitStr{2};
+                imgNum(i)     = str2double(imgNumStr{i});
+                nNumStr(i)    = numel(imgNumStr{i});
+                tfNumbered(i) = true;
+            otherwise
+                fprintf('Ignoring %s%s - Bad Format.\n',bName{i},fExt);
+        end
+    end
 
-% Sort images
-[~,idx] = sort(imgNum);
+    baseName  =  baseName(tfNumbered);
+    imgNumStr = imgNumStr(tfNumbered);
+    imgNum    =    imgNum(tfNumbered);
 
-%baseName  =  baseName(idx);
-imgNumStr = imgNumStr(idx);
-imgNum    =    imgNum(idx);
-nNumStr   =   nNumStr(idx);
+    % Find unique base names
+    u_baseName = unique(baseName);
+    for i = 1:numel(u_baseName)
+        n_baseName(i) = nnz( matches(baseName,u_baseName{i}) );
+        fprintf('%s_*%s - %d found.\n',u_baseName{i},fExt,n_baseName(i));
+    end
 
-%% Define image names
-if imgNum(1) == 0
-    i0 = 0;
+    % Select most prevalent baseName
+    % TODO - prompt user?
+    [~,idx] = max(n_baseName);
+    tfbaseName = matches(baseName,u_baseName{idx});
+
+    baseName  =  baseName(tfbaseName);
+    imgNumStr = imgNumStr(tfbaseName);
+    imgNum    =    imgNum(tfbaseName);
+    nNumStr   =   nNumStr(tfbaseName);
+
+    % Keep the uniqe base name
+    baseName = baseName{1};
+
+    % TODO - check nNumStr for consistency
+
+    % Sort images
+    [~,idx] = sort(imgNum);
+
+    %baseName  =  baseName(idx);
+    imgNumStr = imgNumStr(idx);
+    imgNum    =    imgNum(idx);
+    nNumStr   =   nNumStr(idx);
+
+    % Define image names
+    if imgNum(1) == 0
+        i0 = 0;
+    else
+        i0 = 1;
+    end
+    i1 = imgNum(end);
+
+    indexVals = i0:i1;
+    for i = 1:numel(indexVals)
+        % Check if index is included
+        tfImage = imgNum == indexVals(i);
+        switch nnz(tfImage)
+            case 1
+                %fmtStr = sprintf('0%d',nNumStr(tfImage));
+                imageName = sprintf('%s_%s%s',baseName,imgNumStr{tfImage},fExt);
+                imageNames{end+1} = fullfile(pName,imageName);
+                corIndexes(end+1) = i;
+
+                fprintf('\t%s - Correspondence Index %d\n',imageName,corIndexes(i));
+            case 0
+                % No image exists
+            otherwise
+                % Multiple images exist
+        end
+    end
 else
-    i0 = 1;
-end
-i1 = imgNum(end);
+    % Check image names
+    tfRemove = isfile(imageNames);
+    imageNames = imageNames(~tfRemove);
+    corIndexes = corIndexes(~tfRemove);
 
-imageNames  = {};
-corIndexes  = [];
-indexVals = i0:i1;
-for i = 1:numel(indexVals)
-    % Check if index is included
-    tfImage = imgNum == indexVals(i);
-    switch nnz(tfImage)
-        case 1
-            %fmtStr = sprintf('0%d',nNumStr(tfImage));
-            imageName = sprintf('%s_%s%s',baseName,imgNumStr{tfImage},fExt);
-            imageNames{end+1} = fullfile(pName,imageName);
-            corIndexes(end+1) = i;
-
-            fprintf('\t%s - Correspondence Index %d\n',imageName,corIndexes(i));
-        case 0
-            % No image exists
-        otherwise
-            % Multiple images exist
-    end
+    % TODO - check image format
 end
 
 fprintf('%d candidate correspondence images.\n',numel(imageNames));
