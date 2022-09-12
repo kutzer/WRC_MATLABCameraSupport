@@ -2,7 +2,7 @@ function varargout = cameraCalibrateCorrespondence(pName)
 % CAMERACALIBRATECORRESPONDENCE runs MATLAB camera calibration tools
 % returning information to establish a correspondence with other data
 % set(s).
-%   [A_c2m,H_f2c,corIndexes,cameraParams,imageNames] =...
+%   [A_c2m,H_f2c,corIndexes,camParams,info] =...
 %                                     cameraCalibrateCorrespondence(pName)
 %
 %   Input(s)
@@ -10,11 +10,16 @@ function varargout = cameraCalibrateCorrespondence(pName)
 %               calibration images
 %
 %   Output(s)
-%       A_c2m        - 3x3 array defining camera intrinsics
-%       H_f2c        - n-element cell array containing extrinsics
-%       corIndexes   - m-element index array noting image index for 
+%       A_c2m      - 3x3 array defining camera intrinsics
+%       H_f2c      - n-element cell array containing extrinsics
+%       corIndexes - m-element index array noting image index for 
 %                      defining correspondence
-%       cameraParams - camera parameters natively returned by MATLAB
+%       camParams  - camera parameters natively returned by MATLAB
+%       info       - structured array containing additional information
+%           info.imageNames - cell array containing images used in
+%                             calibration
+%           info.squareSize - calibration checkerboard square size
+%           info.boardSize  - calibration checkerboard size
 %
 %   NOTE: This function requires image names seperated using an underscore.
 %         Example: checker_023.png
@@ -211,7 +216,7 @@ switch list{listIdx}
     case 'Standard'
         % Standard camera calibration
         fprintf('\nCalibrating using standard camera model...');
-        [cameraParams, imagesUsed, estimationErrors] = ...
+        [camParams, imagesUsed, estimationErrors] = ...
             estimateCameraParameters(P_m, P_g, ...
             'EstimateSkew', false, 'EstimateTangentialDistortion', false, ...
             'NumRadialDistortionCoefficients', 2, 'WorldUnits', 'millimeters', ...
@@ -221,7 +226,7 @@ switch list{listIdx}
     case 'Fisheye'
         % Fisheye camera calibration
         fprintf('\nCalibrating using fisheye camera model...');
-        [cameraParams, imagesUsed, estimationErrors] = ...
+        [camParams, imagesUsed, estimationErrors] = ...
             estimateFisheyeParameters(P_m, P_g, ...
             [mrows, ncols], ...
             'EstimateAlignment', true, ...
@@ -240,7 +245,7 @@ P_m = P_m(:,:,imagesUsed);
 
 % View reprojection errors
 reproj.Figure = figure('Name','Reprojection Errors','NumberTitle','off');
-showReprojectionErrors(cameraParams);
+showReprojectionErrors(camParams);
 reproj.Axes   = findobj('Parent',reproj.Figure,'Type','Axes');
 reproj.Legend = findobj('Parent',reproj.Figure,'Type','Legend');
 reproj.Bar  = findobj('Parent',reproj.Axes,'Type','Bar','Tag','errorBars');
@@ -248,13 +253,13 @@ reproj.Line = findobj('Parent',reproj.Axes,'Type','Line');
 
 % Visualize pattern locations
 extrin.Figure = figure('Name','Camera Extrinsics','NumberTitle','off');
-showExtrinsics(cameraParams,'CameraCentric'); 
+showExtrinsics(camParams,'CameraCentric'); 
 
 % Display parameter estimation errors
-%displayErrors(estimationErrors, cameraParams);
+%displayErrors(estimationErrors, camParams);
 
 % For example, you can use the calibration data to remove effects of lens distortion.
-%undistortedImage = undistortImage(originalImage, cameraParams);
+%undistortedImage = undistortImage(originalImage, camParams);
 
 % See additional examples of how to use the calibration data.  At the prompt type:
 % showdemo('MeasuringPlanarObjectsExample')
@@ -264,24 +269,28 @@ showExtrinsics(cameraParams,'CameraCentric');
 % Package intrinsics
 switch list{listIdx}
     case 'Standard'
-        A_c2m = cameraParams.IntrinsicMatrix.';
+        A_c2m = camParams.IntrinsicMatrix.';
     case 'Fisheye'
         fprintf('\n!!! Fisheye Model Selected !!!\n\n')
         fprintf('Fisheye camera model does not provide an intrinsic matrix!\n')
-        fprintf('\tUse imagePoints = worldToImage(cal.cameraParams.Intrinsics,H_o2c(1:3,1:3).'',H_o2c(1:3,4).'',P_o(1:3,:).'')\n')
+        fprintf('\tUse imagePoints = worldToImage(cal.camParams.Intrinsics,H_o2c(1:3,1:3).'',H_o2c(1:3,4).'',P_o(1:3,:).'')\n')
         A_c2m = [];
 end
 
 %% Parse transformations
 for i = 1:numel(corIndexes)
     H_f2c{i} = [...
-        cameraParams.RotationMatrices(:,:,i).', ...
-        cameraParams.TranslationVectors(i,:).';...
+        camParams.RotationMatrices(:,:,i).', ...
+        camParams.TranslationVectors(i,:).';...
         0,0,0,1];
 end
 
 %% Package outputs
-outTMP = {A_c2m,H_f2c,corIndexes,cameraParams,imageNames};
+info.imageNames = imageNames;
+info.squareSize = squareSize;
+info.boardSize  = boardSize;
+
+outTMP = {A_c2m,H_f2c,corIndexes,camParams,info};
 for i = 1:nargout
     varargout{i} = outTMP{i};
 end
