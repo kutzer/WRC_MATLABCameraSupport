@@ -201,11 +201,10 @@ if isempty(imageNames)
     end
 else
     % Check image names
-    tfRemove = isfile(imageNames);
-    imageNames = imageNames(~tfRemove);
-    corIndexes = corIndexes(~tfRemove);
+    tfKeep = isfile(imageNames);
+    imageNames = imageNames(tfKeep);
+    corIndexes = corIndexes(tfKeep);
 
-    imageNames
     % TODO - check image format
 end
 
