@@ -230,12 +230,19 @@ for k = 1:numel(uiC)
             assignin('base','src_obj',src_obj);
             continue
     end
-    src_obj.(camProp) = setVal;
     
-    if ischar(setVal)
-        fprintf('"%s"\n',setVal);
-    else
-        fprintf('%d\n',setVal);
+    % Try setting property
+    % TODO - Address issue with DFx 21BU04
+    try
+        src_obj.(camProp) = setVal;
+        
+        if ischar(setVal)
+            fprintf('"%s"\n',setVal);
+        else
+            fprintf('%d\n',setVal);
+        end
+    catch
+            fprintf('UNABLE TO SET, SEE TODO\n');
     end
 end
 fprintf('Starting Camera...');
