@@ -205,6 +205,7 @@ else
     imageNames = imageNames(~tfRemove);
     corIndexes = corIndexes(~tfRemove);
 
+    imageNames
     % TODO - check image format
 end
 
