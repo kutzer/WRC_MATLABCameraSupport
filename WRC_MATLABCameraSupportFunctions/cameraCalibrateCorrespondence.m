@@ -1,8 +1,9 @@
-function [A_c2m,H_f2c,corIndexes,cameraParams] = cameraCalibrateCorrespondence(pName)
+function varargout = cameraCalibrateCorrespondence(pName)
 % CAMERACALIBRATECORRESPONDENCE runs MATLAB camera calibration tools
 % returning information to establish a correspondence with other data
 % set(s).
-%   [A_c2m,H_f2c,corIndexes,cameraParams] = cameraCalibrateCorrespondence(fname)
+%   [A_c2m,H_f2c,corIndexes,cameraParams,imageNames] =...
+%                                     cameraCalibrateCorrespondence(pName)
 %
 %   Input(s)
 %       fname - [OPTIONAL] string defining folder path containing m
@@ -277,4 +278,10 @@ for i = 1:numel(corIndexes)
         cameraParams.RotationMatrices(:,:,i).', ...
         cameraParams.TranslationVectors(i,:).';...
         0,0,0,1];
+end
+
+%% Package outputs
+outTMP = {A_c2m,H_f2c,corIndexes,cameraParams,imageNames};
+for i = 1:nargout
+    varargout{i} = outTMP{i};
 end
