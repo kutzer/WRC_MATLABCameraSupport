@@ -13,7 +13,7 @@ function varargout = aprilTagCorrespondence(camParams,tagFamily,tagID,tagSize,pN
 %                   MATLAB camera calibration
 %       tagFamily - character array specifying AprilTag family (see
 %                   readAprilTag.m)
-%       tagID     - scalar value specifying AprilTag ID (see 
+%       tagID     - scalar integer specifying AprilTag ID (see 
 %                   readAprilTag.m)
 %       tagSize   - scalar value specifying AprilTag size (see
 %                   readAprilTag.m)
@@ -35,6 +35,9 @@ function varargout = aprilTagCorrespondence(camParams,tagFamily,tagID,tagSize,pN
 %           info.imageNames   - cell array containing images used in
 %                               calibration
 %           info.tagLocations - cell array containing tag locations
+%           info.tagFamily    - character array specifying AprilTag family
+%           info.tagID        - scalar integer specifying AprilTag ID
+%           info.tagSize      - scalar value specifying AprilTag size
 %
 %   M. Kutzer, 14Sep2022, USNA
 
@@ -52,7 +55,7 @@ end
 %% Check input(s)
 narginchk(4,7);
 
-if nargin < 1
+if nargin < 5
     pName = uigetdir;
 end
 
@@ -81,18 +84,6 @@ for i = 1:numel(varargin)
     end
 
     warning('Ignoring input %d.',i+1);
-end
-
-% Check camera parameters
-switch lower(class(camParams))
-    case 'cameraparameters'
-        % Pinhole camera
-        isFisheye = false;
-    case 'fisheyeparameters'
-        % Fisheye camera
-        isFisheye = true;
-    otherwise
-        error('camParams must be valid camera/fisheye parameters.');
 end
         
 %% Get image names
@@ -125,41 +116,12 @@ fprintf('\nDetecting AprilTags...');
 for i = 1:numel(imageNames)
     im = imread(imageNames{i});
 
-    % Dewarp image
-    if isFisheye
-        % Undistort fisheye image and get undistorted image intrinsics
-        [im,intrinsics] = undistortFisheyeImage(im,camParams);
-    else
-        % Undistort camera image [NOT SURE IF THIS IS NECESSARY]
-        [im,newOrigin] = undistortImage(im,camParams);
-        % TODO - update intrinsics with new origin?
+    [H_a2c{i},tagLocations{i}] =...
+        aprilTagPose(im,camParams,tagFamily,tagID,tagSize);
 
-        % Get image intrinsics
-        intrinsics = camParams.Intrinsics;
+    if ~isempty(H_a2c{i})
+        imagesUsed(i) = true;
     end
-
-    [id,loc,pose] = readAprilTag(im,tagFamily,intrinsics,tagSize);
-    
-    tfID = id == tagID;
-    switch nnz(tfID)
-        case 0
-            % No tags found
-        case 1
-            % 1 tag found
-            loc = loc(:,:,tfID);
-            pose = pose(tfID);
-
-            imagesUsed(i) = true;
-
-            H_a2c{i} = eye(4);
-            H_a2c{i}(1:3,1:3) = pose.Rotation.';
-            H_a2c{i}(1:3,4)   = pose.Translation.';
-
-            tagLocations{i} = loc;
-        otherwise
-            % Multiple tags found
-    end
-
 end
 fprintf('COMPLETE\n');
 
@@ -171,6 +133,9 @@ corIndexes = corIndexes(imagesUsed);
 %% Package outputs
 info.imageNames = imageNames;
 info.tagLocations = tagLocations;
+info.tagFamily = tagFamily;
+info.tagID = tagID;
+info.tagSize = tagSize;
 
 outTMP = {H_a2c,corIndexes,info};
 for i = 1:nargout
