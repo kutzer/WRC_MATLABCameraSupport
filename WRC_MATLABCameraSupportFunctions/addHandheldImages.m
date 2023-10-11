@@ -1,13 +1,17 @@
 function addHandheldImages(pname,bname_h,i0)
 % ADDHANDHELDIMAGES adds handheld images to a calibration folder
-%   ADDHANDHELDIMAGES(pname,bname_h,fnameRobotInfo,i0)
+%   ADDHANDHELDIMAGES()
+%   ADDHANDHELDIMAGES(pname)
+%   ADDHANDHELDIMAGES(pname,bname_h)
+%   ADDHANDHELDIMAGES(pname,bname_h,i0)
 %
 %   Input(s)
 %            pname - character array containing the folder name (aka the path)
 %                    containing the calibration images and robot pose data 
-%                    file
-%          bname_h - base filename for each handheld image
-%               i0 - starting image index value
+%                    file. Default value is 'CalImgs_yyyymmdd_HHMMSS'.
+%          bname_h - base filename for each handheld image. Default value
+%                    is 'img'.
+%               i0 - starting image index value. Default value is 1.
 %
 %   Output(s)
 %
@@ -15,6 +19,22 @@ function addHandheldImages(pname,bname_h,i0)
 %   See also calibrateUR3e_FixedCamera calibrateUR3e_EyeInHandCamera
 %
 %   M. Kutzer, 13Apr2022, USNA
+
+% Update(s)
+%   11Oct2023 - Get camera and preview from 'caller' workspace
+%   11Oct2023 - Create path if it does not exist
+%   11Oct2023 - Set default values
+
+%% Set default(s)
+if nargin < 1
+    pname = sprintf('CalImgs_%s',datestr(now,'yyyymmdd_HHMMSS'));
+end
+if nargin < 2
+    bname_h = 'img';
+end
+if nargin < 3
+    i0 = 1;
+end
 
 %% Check input(s)
 % Check for valid pathname
@@ -49,7 +69,8 @@ while true
         case 'Yes'
             % Get current list of variables in workspace
             % TODO - get workspace outside of calling function!
-            list = who;
+            %list = who;
+            list = evalin('caller','who');
 
             % Find existing camera object with typical variable name
             bin = matches(list,'cam','IgnoreCase',false);
@@ -69,7 +90,8 @@ while true
                 '(typically "cam" is used as','the variable name)'});
 
             if tf
-                cam = eval(sprintf('%s'),list{idx});
+                %cam = eval(sprintf('%s',list{idx}));
+                cam = evalin('caller',list{idx});
                 prv = preview(cam);
                 handles = recoverPreviewHandles(prv);
                 break
@@ -100,6 +122,14 @@ if numel(nImages) == 0
     return
 end
 n = ceil( str2double( nImages{1} ) );
+
+% Create calibration directory if it does not exist
+if ~isfolder(pname)
+    [status,msg] = mkdir(pname);
+    if ~status
+        error('Unable to create the specified pathname: %s\n\t%s',pname,msg);
+    end
+end
 
 % Get standard calibration images
 % TODO - share format string across functions
