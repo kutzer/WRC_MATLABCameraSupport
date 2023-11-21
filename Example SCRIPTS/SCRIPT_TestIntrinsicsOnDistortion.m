@@ -16,10 +16,22 @@
 % Undistort and package checkerboard points detected in images
 n = size(imagePoints,3);
 p_m = cell(n,1);
+u_m = cell(n,1);
 for i = 1:n
     % TODO - allow for fisheye camera model
-    p_m{i} = undistortPoints(imagePoints(:,:,i),params).';
+    
+    % Define distorted image points
+    p_m{i} = imagePoints(:,:,i).';
     p_m{i}(3,:) = 1; % Append 1 to make homogeneous
+
+    % Define undistorted image points
+    u_m{i} = undistortPoints(imagePoints(:,:,i),params).';
+    u_m{i}(3,:) = 1; % Append 1 to make homogeneous
+end
+
+%% Test camera distortion
+for i = 1:numel(u_m)
+    d_m{i} = distortImagePoints(u_m{i}(1:2,:),params);
 end
 
 %% Adjust intrinsics
@@ -39,7 +51,7 @@ for i = 1:n
     pNew_m{i}(3,:) = 1; % Append 1 to make homogeneous
 
     % Compare
-    errNew = sqrt( sum( (pNew_m{i} - p_m{i}).^2, 1) );
+    errNew = sqrt( sum( (pNew_m{i} - u_m{i}).^2, 1) );
     errMu(i) = mean(errNew);
     errStd(i) = std(errNew);
 end
