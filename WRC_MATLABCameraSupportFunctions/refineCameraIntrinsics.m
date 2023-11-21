@@ -76,12 +76,15 @@ A_c2m(1,1:3) = px_m*pinv(tilde_p1_c);
 A_c2m(2,2:3) = py_m*pinv(tilde_p2_c);
 
 %% Package camera parameters
-paramsStrct = toStruct(params);
+paramsStruct = toStruct(params);
 
 if isfield(paramsStruct,'IntrinsicMatrix')
-    holder.IntrinsicMatrix = A_c2m;
-    paramsOut = cameraParameters(holder);
+    % MATLAB 2022b and older
+    paramsStruct.IntrinsicMatrix = A_c2m.';
+elseif isfield(paramsStruct,'K')
+    % MATLAB 2023a and newer
+    paramsStruct.K = A_c2m;
 end
+paramsOut = cameraParameters(paramsStruct);
 
-
-%% 
+%% Adjust distortion parameters
