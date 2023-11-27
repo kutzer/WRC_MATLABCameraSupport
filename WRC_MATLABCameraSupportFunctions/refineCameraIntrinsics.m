@@ -16,6 +16,13 @@ function paramsOut = refineCameraIntrinsics(params,imageNames,H_f2c,squareSize)
 %        paramsOut - camera parameters with intrinsics refined using the
 %                    images and fiducial extrinsics
 %
+%   USE NOTES:
+%       (1) The current implementation of this function does not update
+%           distortion coefficients to account for the refined camera 
+%           intrinsics.
+%       (2) Per (1), if/when undistortX functions are required, the
+%           original camera parameters should be used. 
+%
 %   C. Civetta & M. Kutzer, 21Nov2023, USNA
 
 %% Check input(s)
