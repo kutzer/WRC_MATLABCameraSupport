@@ -31,9 +31,22 @@ end
 
 %% Test camera distortion
 for i = 1:numel(u_m)
-    d_m{i} = distortImagePoints(u_m{i}(1:2,:),params);
+    [d_m{i},axs] = distortImagePoints(u_m{i}(1:2,:),params);
+    plt_Xm = plot(axs(1),p_m{i}(1,:),p_m{i}(2,:),'ob','Tag','Original Points');
 end
 
+%% Compare results
+n = numel(p_m);
+for i = 1:n
+    delta = p_m{i}(1:2,:) - d_m{i}(1:2,:);
+    delta_i = sqrt(sum(delta.^2,1));
+    deltaMu(i) = mean(delta_i);
+    deltaStd(i) = std(delta_i);
+end
+figure; 
+errorbar(1:n,deltaMu,2*deltaStd);
+
+return
 %% Adjust intrinsics
 holder = toStruct(params);
 holder.IntrinsicMatrix = [...
