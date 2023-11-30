@@ -27,11 +27,14 @@ function varargout = WRC_MATLABCameraSupportVer
 %   14Apr2022 - Created common function for use in fixed and eye-in-hand
 %               calibration
 %   18Apr2022 - Bug fixes in calibrate* functions
+%   21Nov2023 - Added refineCameraIntrinsics
+%   30Nov2023 - Updated adjustCamera to enable output and input of camera
+%               settings.
 
 A.Name = 'WRC MATLAB Camera Support';
-A.Version = '1.1.1';
+A.Version = '1.2.0';
 A.Release = '(R2019b)';
-A.Date = '18-Apr-2022';
+A.Date = '30-Nov-2023';
 A.URLVer = 1;
 
 msg{1} = sprintf('MATLAB %s Version: %s %s',A.Name, A.Version, A.Release);
