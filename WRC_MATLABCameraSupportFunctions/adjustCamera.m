@@ -22,6 +22,7 @@ function varargout = adjustCamera(cam,varargin)
 %                     specifying an output will block execution until the
 %                     GUI is closed using the "Exit" button.
 %
+%
 %   Example 1: Basic use
 %       % Initialize camera
 %       [init,cam] = initCamera;
@@ -37,8 +38,10 @@ function varargout = adjustCamera(cam,varargin)
 %       % Apply camera settings to camera
 %       adjustCamera(cam,camSettings,true);
 %
-%   Recommended steps to adjust an Imaging Source DFK 23U618 with 
-%   mechanical aperture lens using the adjustCamera GUI:
+%
+%   Recommended steps for adjusting an Imaging Source DFK 21BU04 or 23U618 
+%   cameras (or similar) with a mechanical aperture lens using the 
+%   adjustCamera GUI:
 %       (1) Change ExposureMode and GainMode to "Auto", click "Apply"
 %       (2) Fully open the lens aperature (e.g. top ring on lens)
 %       (3) Wait for the camera to auto adjust
