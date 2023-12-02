@@ -38,14 +38,26 @@ end
 
 % Detect checkerboard points
 [imagePoints,boardSize,imagesUsed] = detectCheckerboardPoints(imageNames);
+
+% Downsample image names
 imageNames = imageNames(imagesUsed);
+
+% Downsample extrinsics using images used in checkerboard detection
+H_f2c = H_f2c(imagesUsed);
 
 % Undistort and package checkerboard points detected in images
 n = size(imagePoints,3);
 p_m = cell(n,1);
 px_m = [];  % Combination of x-only coordinates 
 py_m = [];  % Combination of y-only coordinates 
+imagesUsed = true( size(imageNames) );
 for i = 1:n
+    % Check for finite imagePoints
+    if ~all( isfinite(imagePoints(:,:,i)) )
+        imagesUsed(i) = false;
+        continue
+    end
+
     % TODO - allow for fisheye camera model
     p_m{i} = undistortPoints(imagePoints(:,:,i),params).';
     p_m{i}(3,:) = 1; % Append 1 to make homogeneous
@@ -55,14 +67,18 @@ for i = 1:n
     py_m = [py_m, p_m{i}(2,:)];
 end
 
+% Downsample based on images used
+p_m = p_m(imagesUsed);
+imageNames = imageNames(imagesUsed);
+H_f2c = H_f2c(imagesUsed);
+% Update number of values
+n = numel(p_m);
+
 %% Define fiducial-based points
 [worldPoints] = generateCheckerboardPoints(boardSize,squareSize);
 p_f = worldPoints.';
 p_f(3,:) = 0; % Append z-coordinate
 p_f(4,:) = 1; % Append 1 to make homogeneous
-
-%% Downsample extrinsics using images used in checkerboard detection
-H_f2c = H_f2c(imagesUsed);
 
 %% Reference fiducial points to the camera frame, scale, & isolate
 p_c = cell(n,1);        % Points referenced to camera frame
@@ -104,6 +120,8 @@ for i = 1:n
     imagePoints(:,:,i) = p_m{i}(1:2,:).';
 end
 % Calculate new extrinscs
+worldPoints3 = worldPoints;
+worldPoints3(:,3) = 0;
 for i = 1:n
     camExtrinsics = estimateExtrinsics(...
         imagePoints(:,:,i),worldPoints,Intrinsics);
@@ -114,6 +132,10 @@ for i = 1:n
 
     % 2022b- parameters
     RotationMatrices(:,:,i) = (camExtrinsics.R).';
+
+    % Calculate reprojection errors
+    p_m_est = worldToImage(Intrinsics,camExtrinsics,worldPoints3);
+    ReprojectionErrors(:,:,i) = p_m_est - p_m{i}(1:2,:).';
 end
 
 %% Update parameters
@@ -121,10 +143,18 @@ if isfield(paramsStruct,'RotationMatrices')
     % MATLAB 2022b and older
     paramsStruct.RotationMatrices = RotationMatrices;
     paramsStruct.TranslationVectors = TranslationVectors;
+    paramsStruct.ReprojectionErrors = ReprojectionErrors;
+
+    % TODO - calculate keypoints
+    paramsStruct.DetectedKeyPoints = true(size(worldPoints,1),n);
 elseif isfield(paramsStruct,'K')
     % MATLAB 2023a and newer
     paramsStruct.RotationVectors = RotationVectors;
     paramsStruct.TranslationVectors = TranslationVectors;
+    paramsStruct.ReprojectionErrors = ReprojectionErrors;
+
+    % TODO - calculate keypoints
+    paramsStruct.DetectedKeyPoints = true(size(worldPoints,1),n);
 end
 paramsOut = cameraParameters(paramsStruct);
 
