@@ -27,6 +27,8 @@ function [paramsOut,imagesUsed] = refineCameraIntrinsics(params,imageNames,H_f2c
 %       (2) Per (1), if/when undistortX functions are required, the
 %           original camera parameters should be used. 
 %
+%   See also updateCameraParamsImagesUsed
+%   
 %   C. Civetta & M. Kutzer, 21Nov2023, USNA
 
 %% Check input(s)
