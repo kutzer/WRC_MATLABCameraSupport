@@ -1,6 +1,8 @@
 function paramsOut = refineCameraIntrinsics(params,imageNames,H_f2c,squareSize)
 % REFINECAMERAINTRINSIS refines camera intrinsics using fiducial
 % extrinsics.
+%   paramsOut = refineCameraIntrinsics(params,imageNames,H_f2c)
+%   paramsOut = refineCameraIntrinsics(params,imageNames,H_f2c,squareSize)
 %
 %   Input(s)
 %           params - camera parameters object
