@@ -27,12 +27,12 @@ if isfield(paramsStruct,'IntrinsicMatrix')
     paramsStruct.RotationMatrices = paramsStruct.RotationMatrices(:,:,imagesUsed);
     paramsStruct.TranslationVectors = paramsStruct.TranslationVectors(imagesUsed,:);
     paramsStruct.ReprojectionErrors = paramsStruct.ReprojectionErrors(:,:,imagesUsed);
-    paramsStruct.DetectedKeyPoints  = paramsStruct.DetectedKeyPoints(:,imagesUsed);
+    paramsStruct.DetectedKeypoints  = paramsStruct.DetectedKeypoints(:,imagesUsed);
 elseif isfield(paramsStruct,'K')
     % MATLAB 2023a and newer
     paramsStruct.RotationVectors    = paramsStruct.RotationVectors(imagesUsed,:);
     paramsStruct.TranslationVectors = paramsStruct.TranslationVectors(imagesUsed,:);
     paramsStruct.ReprojectionErrors = paramsStruct.ReprojectionErrors(:,:,imagesUsed);
-    paramsStruct.DetectedKeyPoints  = paramsStruct.DetectedKeyPoints(:,imagesUsed);
+    paramsStruct.DetectedKeypoints  = paramsStruct.DetectedKeypoints(:,imagesUsed);
 end
 paramsOut = cameraParameters(paramsStruct);
