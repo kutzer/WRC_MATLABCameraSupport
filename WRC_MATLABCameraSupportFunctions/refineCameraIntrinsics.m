@@ -38,6 +38,7 @@ end
 
 % Detect checkerboard points
 [imagePoints,boardSize,imagesUsed] = detectCheckerboardPoints(imageNames);
+imageNames = imageNames(imagesUsed);
 
 % Undistort and package checkerboard points detected in images
 n = size(imagePoints,3);
@@ -93,6 +94,37 @@ if isfield(paramsStruct,'IntrinsicMatrix')
 elseif isfield(paramsStruct,'K')
     % MATLAB 2023a and newer
     paramsStruct.K = A_c2m;
+end
+paramsOut = cameraParameters(paramsStruct);
+
+%% Calculate new fiducial extrinsics
+Intrinsics = paramsOut.Intrinsics;
+% Package undistorted image points
+for i = 1:n
+    imagePoints(:,:,i) = p_m{i}(1:2,:).';
+end
+% Calculate new extrinscs
+for i = 1:n
+    camExtrinsics = estimateExtrinsics(...
+        imagePoints(:,:,i),worldPoints,Intrinsics);
+    
+    % 2023a+ parameters
+    RotationVectors(i,:) = rotmat2vec3d(camExtrinsics.R);
+    TranslationVectors(i,:) = camExtrinsics.Translation;
+
+    % 2022b- parameters
+    RotationMatrices(:,:,i) = (camExtrinsics.R).';
+end
+
+%% Update parameters
+if isfield(paramsStruct,'RotationMatrices')
+    % MATLAB 2022b and older
+    paramsStruct.RotationMatrices = RotationMatrices;
+    paramsStruct.TranslationVectors = TranslationVectors;
+elseif isfield(paramsStruct,'K')
+    % MATLAB 2023a and newer
+    paramsStruct.RotationVectors = RotationVectors;
+    paramsStruct.TranslationVectors = TranslationVectors;
 end
 paramsOut = cameraParameters(paramsStruct);
 
