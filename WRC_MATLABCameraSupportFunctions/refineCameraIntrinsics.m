@@ -171,8 +171,8 @@ paramsOut = cameraParameters(paramsStruct);
 % TODO - match distortion parameters to new intrinsics
 paramsStruct.RadialDistortion = zeros(1,2);
 paramsStruct.TangentialDistortion = zeros(1,2);
-paramsStruct.EstimateSkew = 0;
+paramsStruct.EstimateSkew = false;
 paramsStruct.NumRadialDistortionCoefficients = 2;
-paramsStruct.EstimateTangentialDistortion = 0;
+paramsStruct.EstimateTangentialDistortion = false;
 
 paramsOut = cameraParameters(paramsStruct);
