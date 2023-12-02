@@ -1,4 +1,4 @@
-function paramsOut = refineCameraIntrinsics(params,imageNames,H_f2c,squareSize)
+function [paramsOut,imagesUsed] = refineCameraIntrinsics(params,imageNames,H_f2c,squareSize)
 % REFINECAMERAINTRINSIS refines camera intrinsics using fiducial
 % extrinsics.
 %   paramsOut = refineCameraIntrinsics(params,imageNames,H_f2c)
@@ -17,6 +17,8 @@ function paramsOut = refineCameraIntrinsics(params,imageNames,H_f2c,squareSize)
 %   Output(s)
 %        paramsOut - camera parameters with intrinsics refined using the
 %                    images and fiducial extrinsics
+%       imagesUsed - binary array defining images used in updated
+%                    parameters
 %
 %   USE NOTES:
 %       (1) The current implementation of this function does not update
@@ -50,11 +52,11 @@ n = size(imagePoints,3);
 p_m = cell(n,1);
 px_m = [];  % Combination of x-only coordinates 
 py_m = [];  % Combination of y-only coordinates 
-imagesUsed = true( size(imageNames) );
+imagesUsed_i = true( size(imageNames) );
 for i = 1:n
     % Check for finite imagePoints
     if ~all( isfinite(imagePoints(:,:,i)) )
-        imagesUsed(i) = false;
+        imagesUsed_i(i) = false;
         continue
     end
 
@@ -68,11 +70,18 @@ for i = 1:n
 end
 
 % Downsample based on images used
-p_m = p_m(imagesUsed);
-imageNames = imageNames(imagesUsed);
-H_f2c = H_f2c(imagesUsed);
+p_m = p_m(imagesUsed_i);
+imageNames = imageNames(imagesUsed_i);
+H_f2c = H_f2c(imagesUsed_i);
 % Update number of values
 n = numel(p_m);
+
+%% Update imagesUsed
+i = 0;
+for j = reshape( find(imagesUsed),1,[] )
+    i = i+1;
+    imagesUsed(j) = imagesUsed_i(i);
+end
 
 %% Define fiducial-based points
 [worldPoints] = generateCheckerboardPoints(boardSize,squareSize);
