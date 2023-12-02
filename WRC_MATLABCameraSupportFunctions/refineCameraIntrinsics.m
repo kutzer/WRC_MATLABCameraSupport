@@ -157,7 +157,7 @@ if isfield(paramsStruct,'RotationMatrices')
     paramsStruct.ReprojectionErrors = ReprojectionErrors;
 
     % TODO - calculate keypoints
-    paramsStruct.DetectedKeyPoints = true(size(worldPoints,1),n);
+    paramsStruct.DetectedKeypoints = true(size(worldPoints,1),n);
 elseif isfield(paramsStruct,'K')
     % MATLAB 2023a and newer
     paramsStruct.RotationVectors = RotationVectors;
@@ -165,7 +165,7 @@ elseif isfield(paramsStruct,'K')
     paramsStruct.ReprojectionErrors = ReprojectionErrors;
 
     % TODO - calculate keypoints
-    paramsStruct.DetectedKeyPoints = true(size(worldPoints,1),n);
+    paramsStruct.DetectedKeypoints = true(size(worldPoints,1),n);
 end
 paramsOut = cameraParameters(paramsStruct);
 
