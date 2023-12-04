@@ -31,6 +31,8 @@ function [paramsOut,imagesUsed] = refineCameraIntrinsics(params,imageNames,H_f2c
 %   
 %   C. Civetta & M. Kutzer, 21Nov2023, USNA
 
+debugON = true;
+
 %% Check input(s)
 % TODO - check inputs
 
@@ -78,6 +80,12 @@ H_f2c = H_f2c(imagesUsed_i);
 % Update number of values
 n = numel(p_m);
 
+if debugON
+    assignin('base','refineCameraIntrinsics.p_m',p_m);
+    assignin('base','refineCameraIntrinsics.px_m',px_m);
+    assignin('base','refineCameraIntrinsics.py_m',py_m);
+end
+
 %% Update imagesUsed
 i = 0;
 for j = reshape( find(imagesUsed),1,[] )
@@ -107,10 +115,22 @@ for i = 1:n
     tilde_p2_c = [tilde_p2_c, tilde_p_c{i}(2:3,:)];
 end
 
+if debugON
+    assignin('base','refineCameraIntrinsics.H_f2c',H_f2c);
+    assignin('base','refineCameraIntrinsics.p_f',p_f);
+    assignin('base','refineCameraIntrinsics.p_c',p_c);
+    assignin('base','refineCameraIntrinsics.tilde_p1_c',tilde_p1_c);
+    assignin('base','refineCameraIntrinsics.tilde_p2_c',tilde_p2_c);
+end
+
 %% Calculate new intrinsics
 A_c2m = eye(3);
 A_c2m(1,1:3) = px_m*pinv(tilde_p1_c);
 A_c2m(2,2:3) = py_m*pinv(tilde_p2_c);
+
+if debugON
+    assignin('base','refineCameraIntrinsics.A_c2m',A_c2m);
+end
 
 %% Package camera parameters
 paramsStruct = toStruct(params);
