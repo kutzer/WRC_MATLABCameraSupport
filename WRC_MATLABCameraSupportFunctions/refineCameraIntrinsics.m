@@ -59,7 +59,7 @@ py_m = [];  % Combination of y-only coordinates
 imagesUsed_i = true( size(imageNames) );
 for i = 1:n
     % Check for finite imagePoints
-    if ~all( isfinite(imagePoints(:,:,i)) )
+    if ~all( reshape(isfinite(imagePoints(:,:,i)),1,[]) )
         imagesUsed_i(i) = false;
         continue
     end
