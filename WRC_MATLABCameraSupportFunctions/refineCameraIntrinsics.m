@@ -81,9 +81,9 @@ H_f2c = H_f2c(imagesUsed_i);
 n = numel(p_m);
 
 if debugON
-    assignin('base','refineCameraIntrinsics.p_m',p_m);
-    assignin('base','refineCameraIntrinsics.px_m',px_m);
-    assignin('base','refineCameraIntrinsics.py_m',py_m);
+    assignin('base','p_m',p_m);
+    assignin('base','px_m',px_m);
+    assignin('base','py_m',py_m);
 end
 
 %% Update imagesUsed
@@ -116,11 +116,11 @@ for i = 1:n
 end
 
 if debugON
-    assignin('base','refineCameraIntrinsics.H_f2c',H_f2c);
-    assignin('base','refineCameraIntrinsics.p_f',p_f);
-    assignin('base','refineCameraIntrinsics.p_c',p_c);
-    assignin('base','refineCameraIntrinsics.tilde_p1_c',tilde_p1_c);
-    assignin('base','refineCameraIntrinsics.tilde_p2_c',tilde_p2_c);
+    assignin('base','H_f2c',H_f2c);
+    assignin('base','p_f',p_f);
+    assignin('base','p_c',p_c);
+    assignin('base','tilde_p1_c',tilde_p1_c);
+    assignin('base','tilde_p2_c',tilde_p2_c);
 end
 
 %% Calculate new intrinsics
@@ -129,7 +129,7 @@ A_c2m(1,1:3) = px_m*pinv(tilde_p1_c);
 A_c2m(2,2:3) = py_m*pinv(tilde_p2_c);
 
 if debugON
-    assignin('base','refineCameraIntrinsics.A_c2m',A_c2m);
+    assignin('base','A_c2m',A_c2m);
 end
 
 %% Package camera parameters
