@@ -17,13 +17,14 @@ function [param2image,image2param] = findImagesUsed(params,imageNames,ZERO)
 %
 %   M. Kutzer, 04Dec2023, USNA
 
+debugON = true;
+
 %% Check input(s)
 narginchk(2,3);
 
 if nargin < 3
     ZERO = 1e-8;
 end
-
 % TODO - check input(s)
 
 %% Get board size from camera parameters
@@ -60,20 +61,32 @@ end
 j_all = reshape( find(imagesUsed),1,[] );
 
 imagesFinite = true(size(j_all));
-for j = j_all
+for jj = 1:nnz(imagesUsed)
+    % Define true image index
+    j = j_all(jj);
 
     % Check for finite elements
-    if ~all( isfinite(imagePoints(:,:,j)) )
-        imagesFinite(j) = false;
+    if ~all( isfinite(imagePoints(:,:,jj)) )
+        imagesFinite(jj) = false;
         continue
     end
 
     % Undistort 
-    imagePoints_j = undistortPoints(imagePoints(:,:,j),params);
+    imagePoints_j = undistortPoints(imagePoints(:,:,jj),params);
 
     % Estimate extrinsics
-    Him_f2c{j} = estimateExtrinsics(...
-        imagePoints,worldPoints,params.Intrinsics);
+    %{
+    % Old Method
+    [rotationMatrix, translationVector] = extrinsics(...
+        imagePoints_j,worldPoints,params);
+    Him_f2c{j}(1:3,1:3) = rotationMatrix.';
+    Him_f2c{j}(1:3,4) = translationVector.';
+    Him_f2c{j}(4,:) = [0,0,0,1];
+    %}
+    % New Method
+    tform3d = estimateExtrinsics(...
+        imagePoints_j,worldPoints,params.Intrinsics);
+    Him_f2c{j} = tform3d.A;
 
     % Find matches
     tf_match = false(1,n);
@@ -81,6 +94,19 @@ for j = j_all
     for i = 1:n
         H_f2f = H_c2f*Hcp_f2c{i};
         Z = H_f2f - eye(4);
+        
+        if debugON
+            maxAbsZ = max(abs(reshape(Z,1,[])));
+            if maxAbsZ > ZERO
+                fprintf(' -- Pattern Extrinsics %3d, Image %3d -- \n',i,j);
+            else
+                fprintf(' [- Pattern Extrinsics %3d, Image %3d -] \n',i,j);
+            end
+            fprintf('\tmax(abs(H_f2f - I)) = %11.4f\n',maxAbsZ);
+            %fprintf('H_f2f = \n');
+            %disp(H_f2f);
+        end
+
         if isZero(Z,ZERO)
             tf_match(i) = true;
         end
@@ -101,7 +127,7 @@ for j = j_all
             i = find(tf_match);
             vals = sprintf('%d ',i);
             msg = sprintf(...
-                'Pattern extrinsics [%s] match Image %d, using first.\n',...
+                'Pattern Extrinsics [%s] match Image %d, using first.\n',...
                 vals,j);
             warning(msg);
 
@@ -122,7 +148,7 @@ H_f2c = [];
 if isprop(params,'RotationMatrices')
     % MATLAB 2022b and older
     H_f2c(1:3,1:3) = params.RotationMatrices(:,:,i).';
-    H_f2c(1:3,4) = params.TranslationVectors(:,:,i).';
+    H_f2c(1:3,4) = params.TranslationVectors(i,:).';
     H_f2c(4,:) = [0,0,0,1];
 end
 
