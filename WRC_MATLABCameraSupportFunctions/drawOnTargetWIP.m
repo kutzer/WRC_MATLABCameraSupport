@@ -82,12 +82,21 @@ globalDrawOnTarget.fig = fig;
 globalDrawOnTarget.axs = axs;
 globalDrawOnTarget.xx = xx;
 globalDrawOnTarget.yy = yy;
-globalDrawOnTarget.hCrossHair = plot(axs,nan,nan,'k');
-globalDrawOnTarget.DrawStatus = 'NewDrawing';
+globalDrawOnTarget.zOffset = 20;
+globalDrawOnTarget.hCrossHair = plot(axs,nan,nan,'k','Tag','CrossHair');
+globalDrawOnTarget.DrawingStatus = 'NewDrawing';
 globalDrawOnTarget.xDrawing = [];
-globalDrawOnTarget.hDrawing = plot(axs,[],[],'o-','Color',[0,0.45,0.74],'LineWidth',2);
+globalDrawOnTarget.hDrawing = plot(axs,nan,nan,'o-','Tag','Drawing',...
+    'Color',[0.00,0.45,0.74],'LineWidth',2);
 globalDrawOnTarget.xMove = [];
-globalDrawOnTarget.hMove = plot(axs,[],[],'o-','Color',[0.50,0.50,0.50],'LineWidth',1);
+globalDrawOnTarget.hMove = plot(axs,nan,nan,'x--','Tag','Transition',...
+    'Color',[0.50,0.50,0.50],'LineWidth',1);
+globalDrawOnTarget.xClosestPoint = [];
+globalDrawOnTarget.hClosestPoint = plot(axs,nan,nan,':','Tag','ClosestPoint',...
+    'Color',[0.00,0.80,0.20],'LineWidth',1.5);
+
+%% Update z-limit to account for z-offset
+zlim(axs,[-1,1] + [0,globalDrawOnTarget.zOffset]);
 
 %% Overlay image
 if ~isempty(im)
@@ -286,22 +295,86 @@ xy = axs.CurrentPoint(1,1:2);
 switch lower(src.SelectionType)
     case 'normal'
         % Left mouse button
+        % -> Start or continue drawing
+        
         switch globalDrawOnTarget.DrawingStatus
             case 'NewDrawing'
+                % Switch Drawing Status
                 globalDrawOnTarget.DrawingStatus = 'ContinuedDrawing';
+                % Add transition point
+                globalDrawOnTarget.xDrawing(end+1,:) = nan(1,2);
+                globalDrawOnTarget.xMove(end+1,:) = ...
+                    [xy,globalDrawOnTarget.zOffset];
+                % Add new drawing point
                 globalDrawOnTarget.xDrawing(end+1,:) = xy;
-                globalDrawOnTarget.xMove(end+1,:) = nan(1,2);
-            case '
+                globalDrawOnTarget.xMove(end+1,:) = nan(1,3);
+            case 'ContinuedDrawing'
+                % Add new drawing point
+                globalDrawOnTarget.xDrawing(end+1,:) = xy;
+                globalDrawOnTarget.xMove(end+1,:) = nan(1,3);
+            case 'ExitDrawing'
+                % Exit triggered
+            otherwise
+                fprintf(2,'Unexpected Case: "globalDrawOnTarget.DrawingStatus = %s\n',globalDrawOnTarget.DrawingStatus);
+        end
+                
     case 'extend'
         % Center mouse button
+        % -> Exit drawing
         
+        % Switch Drawing Status
+        globalDrawOnTarget.DrawingStatus = 'ContinuedDrawing';
+                
     case 'alt'
         % Right mouse button
-        if size(globalDrawOnTarget.xDrawing,1) > 0
-        globalDrawOnTarget.xMove(end+1,:) = xy;
+        % -> Add transition between drawings
+        
+        switch globalDrawOnTarget.DrawingStatus
+            case 'NewDrawing'
+                % Do nothing (drawing is already in transition)
+            case 'ContinuedDrawing'
+                % Switch Drawing Status
+                globalDrawOnTarget.DrawingStatus = 'NewDrawing';
+                % Add transition point
+                % -> Get last drawing point
+                tfXY = isfinite(globalDrawOnTarget.xDrawing);
+                tfXY = tfXY(:,1) & tfXY(:,2);
+                xy = globalDrawOnTarget.xDrawing(tfXY,:);
+                xy = xy(end,:);
+                % -> Define transition point
+                globalDrawOnTarget.xDrawing(end+1,:) = nan(1,2);
+                globalDrawOnTarget.xMove(end+1,:) = ...
+                    [xy,globalDrawOnTarget.zOffset];
+            case 'ExitDrawing'
+                % Exit triggered
+            otherwise
+                fprintf(2,'Unexpected Case: "globalDrawOnTarget.DrawingStatus = %s\n',globalDrawOnTarget.DrawingStatus);
+        end
+        
+    case 'open'
+        % Double-click left mouse button
+        % -> Close the drawing
+        
+        
+        
     otherwise
         fprintf('\tUnexpected response: %s',src.SelectionType);
 end
+
+globalDrawOnTarget.xDrawing
+globalDrawOnTarget.xMove
+
+% Update plots
+% -> Update drawing
+set(globalDrawOnTarget.hDrawing,...
+    'XData',globalDrawOnTarget.xDrawing(:,1),...
+    'YData',globalDrawOnTarget.xDrawing(:,2));
+% -> Update transition
+set(globalDrawOnTarget.hMove,...
+    'XData',globalDrawOnTarget.xMove(:,1),...
+    'YData',globalDrawOnTarget.xMove(:,2),...
+    'ZData',globalDrawOnTarget.xMove(:,3));
+drawnow
 
 end
 
@@ -322,6 +395,9 @@ switch lower(src.SelectionType)
         
     case 'alt'
         % Right mouse button
+        
+    case 'open'
+        % Double-click left mouse button
         
     otherwise
         fprintf('\tUnexpected response: %s',src.SelectionType);
@@ -346,12 +422,34 @@ switch callbackdata.EventName
         % Get just x/y of current point in axes
         xy = axs.CurrentPoint(1,1:2);
         
+        % Define crosshair x/y coordinates
         crossHair_Pnts = [...
            xx(1) , xy(1)-offset , nan , xy(1)+offset, xx(2) , nan , xy(1) , xy(1)        , nan , xy(1)        , xy(1)  ;...
            xy(2) , xy(2)        , nan , xy(2)       , xy(2) , nan , yy(1) , xy(2)-offset , nan , xy(2)+offset , yy(2)  ...
            ];
        
+       % Update crosshair
        set(plt,'XData',crossHair_Pnts(1,:),'YData',crossHair_Pnts(2,:));
+       
+       % Check drawing status
+       switch globalDrawOnTarget.DrawingStatus
+            case 'ContinuedDrawing'
+                % Show connection to previous drawing point
+                set(globalDrawOnTarget.hDrawing,...
+                    'XData',[globalDrawOnTarget.xDrawing(:,1); xy(1)],...
+                    'YData',[globalDrawOnTarget.xDrawing(:,2); xy(2)]);
+                
+                % Find closest point
+                globalDrawOnTarget.xClosestPoint = ...
+                    findClosestPoint(globalDrawOnTarget.xDrawing,xy);
+                
+                % Show closest point
+                set(globalDrawOnTarget.hClosestPoint,...
+                    'XData',[xy(:,1); globalDrawOnTarget.xClosestPoint(:,1)],...
+                    'YData',[xy(:,2); globalDrawOnTarget.xClosestPoint(:,2)]);
+       end
+       
+       % Update drawing
        drawnow;
         
     otherwise
@@ -375,5 +473,35 @@ function figWindowScrollWheelFCN(src, callbackdata)
 fprintf('figWindowScrollWheelFCN\n',mfilename);
 callbackdata
 src.CurrentCharacter
+
+end
+
+% -------------------------------------------------------------------------
+function xyClose = findClosestPoint(xyAll,xy)
+% Find the closest point to an array of points
+
+% Check for special case(s)
+if isempty(xyAll)
+    % No drawing data
+    xyClose = nan(1,2);
+end
+if ~any(isfinite(xyAll(end,:)))
+    % Drawing is in transition
+    xyClose = nan(1,2);
+    return
+end
+
+
+% Find closest point
+dxyAll = xyAll - repmat(xy,size(xyAll,1),1);
+dxyAll = dxyAll.^2;
+dxyAll = sum(dxyAll,2);
+
+tfFinite = isfinite(dxyAll);
+tfMin = dxyAll == min(dxyAll(tfFinite));
+
+tfMin = tfFinite & tfMin;
+
+xyClose = xyAll(tfMin,:);
 
 end
