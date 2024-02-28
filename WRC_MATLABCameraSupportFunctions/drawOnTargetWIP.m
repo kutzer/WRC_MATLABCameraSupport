@@ -15,9 +15,9 @@ function X_t = drawOnTargetWIP(varargin)
 %       im  - [OPTIONAL] image to overlay on the target drawing
 %
 %   Output(s)
-%       X_t - 3xN array containing x/y/z points associated with the 
+%       X_t - 3xN array containing x/y/z points associated with the
 %             drawing referenced to the "target" frame. Points are defined
-%             in millimeters. 
+%             in millimeters.
 %
 %   NOTE: The target drawing is available in WRC_MATLABCameraSupport
 %         repository:
@@ -73,8 +73,8 @@ daspect(axs,[1 1 1]);
 % Set axes limits to 11" x 8.5"
 xx = [0,11*25.4];  % 11.0" wide (converted to mm)
 yy = [0,8.5*25.4]; %  8.5" high (converted to mm)
-xlim(axs,xx);     
-ylim(axs,yy);     
+xlim(axs,xx);
+ylim(axs,yy);
 zlim(axs,[-1,1]);
 
 %% Package global data
@@ -94,6 +94,7 @@ globalDrawOnTarget.hMove = plot(axs,nan,nan,'x--','Tag','Transition',...
 globalDrawOnTarget.xClosestPoint = [];
 globalDrawOnTarget.hClosestPoint = plot(axs,nan,nan,':','Tag','ClosestPoint',...
     'Color',[0.00,0.80,0.20],'LineWidth',1.5);
+globalDrawOnTarget.DeletePoint = false;
 
 %% Update z-limit to account for z-offset
 zlim(axs,[-1,1] + [0,globalDrawOnTarget.zOffset]);
@@ -103,10 +104,10 @@ if ~isempty(im)
     % Define image size
     x_im = size(im,2);
     y_im = size(im,1);
-
+    
     % Define scale
     scale = min([xx(2)/x_im,yy(2)/y_im]);
-
+    
     % Define "image" relative to "corner" frame
     H_c2a = Tz(-0.1)*Rx(pi)*Tx(xx(2)/2)*Ty(-yy(2)/2);
     h_c2a = triad('Parent',axs,'Scale',20,'Matrix',H_c2a,'LineWidth',2);
@@ -114,12 +115,12 @@ if ~isempty(im)
     h_s2c = triad('Parent',h_c2a,'Scale',30,'Matrix',H_s2c);
     H_i2s = Sx(scale)*Sy(scale);
     h_i2s = triad('Parent',h_s2c,'Scale',max([x_im,y_im])/2,'Matrix',H_i2s);
-
+    
     % Show image
     img = imshow(im,'Parent',axs);
     set(img,'Parent',h_i2s,'AlphaData',0.5);
     set(axs,'Visible','on','YDir','Normal');
-
+    
     % Hide triads
     hideTriad(h_c2a);
     hideTriad(h_s2c);
@@ -150,11 +151,11 @@ dot(3,:) = 0;
 for i = 1:3
     % Define dot centered at ith target point location
     dot_t = dot + X_t(:,i);
-    dot_t(4,:) = 1; 
+    dot_t(4,:) = 1;
     % Reference dot to paper frame
     dot_o = H_t2p*dot_t;
     dot_o(4,:) = [];
-
+    
     % Render dot on paper
     ptc(i) = patch('Faces',1:n,'Vertices',dot_o.','Parent',axs,...
         'FaceColor','k','EdgeColor','none');
@@ -181,10 +182,10 @@ title(axs,sprintf('Click points\n[Center Mouse Button to Exit]'));
 
 % Enable KeyPressFcn
 fig.ButtonDownFcn = @figButtonDownFCN;
-fig.KeyPressFcn = @figKeyPressFCN;
-fig.KeyReleaseFcn = @figKeyReleaseFCN;
-fig.WindowKeyPressFcn = @figWindowKeyPressFCN;
-fig.WindowKeyReleaseFcn = @figWindowKeyReleaseFCN;
+fig.KeyPressFcn = @figKeyFCN;
+fig.KeyReleaseFcn = @figKeyFCN;
+fig.WindowKeyPressFcn = @figWindowKeyFCN;
+fig.WindowKeyReleaseFcn = @figWindowKeyFCN;
 fig.WindowButtonDownFcn = @figWindowButtonDownFCN;
 fig.WindowButtonUpFcn = @figWindowButtonUpFCN;
 fig.WindowButtonMotionFcn = @figWindowButtonMotionFCN;
@@ -255,34 +256,41 @@ function figButtonDownFCN(src, callbackdata)
 
 fprintf('figButtonDownFCN\n',mfilename);
 callbackdata
-src.CurrentCharacter
+
 
 end
 
 % -------------------------------------------------------------------------
-function figKeyPressFCN(src, callbackdata)
+function figKeyFCN(src, callbackdata)
 
-fprintf('figKeyPressFCN\n',mfilename);
-callbackdata
-src.CurrentCharacter
+%fprintf('figKeyFCN\n',mfilename);
 
 end
 
 % -------------------------------------------------------------------------
-function figKeyReleaseFCN(src, callbackdata)
+function figWindowKeyFCN(src, callbackdata)
 
-fprintf('figKeyReleaseFCN\n',mfilename);
-callbackdata
-src.CurrentCharacter
+global globalDrawOnTarget
 
+fprintf('figWindowKeyFCN\n',mfilename);
+
+switch callbackdata.EventName
+    case 'WindowKeyPress'
+        fprintf('WindowKeyPress\n');
+        switch lower(callbackdata.Key)
+            case 'backspace'
+                % Delete point
+                if ~globalDrawOnTarget.DeletePoint
+                    
+                end
+            otherwise
+                fprintf('%s\n',callbackdata.Key);
+        end
+    case 'WindowKeyRelease'
+        fprintf('WindowKeyRelease\n');
+    otherwise
+        fprintf(2,'Unexpected event type: %s\n',callbackdata.EventName);
 end
-
-% -------------------------------------------------------------------------
-function figWindowKeyPressFCN(src, callbackdata)
-
-fprintf('figWindowKeyPressFCN\n',mfilename);
-callbackdata
-src.CurrentCharacter
 
 end
 
@@ -326,14 +334,25 @@ switch lower(src.SelectionType)
             otherwise
                 fprintf(2,'Unexpected Case: "globalDrawOnTarget.DrawingStatus = %s\n',globalDrawOnTarget.DrawingStatus);
         end
-                
+        
     case 'extend'
         % Center mouse button
         % -> Exit drawing
         
         % Switch Drawing Status
         globalDrawOnTarget.DrawingStatus = 'ExitDrawing';
-                
+        
+        % Hide connection between current position and previous drawing point
+        if size(globalDrawOnTarget.xDraw,2) == 2
+            % Account for initial condition of xDraw = []
+            set(globalDrawOnTarget.hDraw,'Visible','on',...
+                'XData',globalDrawOnTarget.xDraw(:,1),...
+                'YData',globalDrawOnTarget.xDraw(:,2));
+        end
+        
+        % Hide closest point
+        set(globalDrawOnTarget.hClosestPoint,'Visible','off');
+        
     case 'alt'
         % Right mouse button
         % -> Add transition between drawings
@@ -362,14 +381,25 @@ switch lower(src.SelectionType)
         
     case 'open'
         % Double-click left mouse button
-        % -> Close the drawing
+        % -> Connect the drawing to closest point
+        
+        switch globalDrawOnTarget.DrawingStatus
+            case 'NewDrawing'
+                % Do nothing
+            case 'ContinuedDrawing'
+                % Connect the drawing to closest point
+                globalDrawOnTarget.xDraw(end+1,:) = ...
+                    globalDrawOnTarget.xClosestPoint;
+                globalDrawOnTarget.xMove(end+1,:) = nan(1,3);
+            case 'ExitDrawing'
+                % Exit triggered
+            otherwise
+                fprintf(2,'Unexpected Case: "globalDrawOnTarget.DrawingStatus = %s\n',globalDrawOnTarget.DrawingStatus);
+        end
         
     otherwise
         fprintf('\tUnexpected response: %s',src.SelectionType);
 end
-
-globalDrawOnTarget.xDraw
-globalDrawOnTarget.xMove
 
 % Update plots
 % -> Update drawing
@@ -431,18 +461,32 @@ switch callbackdata.EventName
         
         % Define crosshair x/y coordinates
         crossHair_Pnts = [...
-           xx(1) , xy(1)-offset , nan , xy(1)+offset, xx(2) , nan , xy(1) , xy(1)        , nan , xy(1)        , xy(1)  ;...
-           xy(2) , xy(2)        , nan , xy(2)       , xy(2) , nan , yy(1) , xy(2)-offset , nan , xy(2)+offset , yy(2)  ...
-           ];
-       
-       % Update crosshair
-       set(plt,'XData',crossHair_Pnts(1,:),'YData',crossHair_Pnts(2,:));
-       
-       % Check drawing status
-       switch globalDrawOnTarget.DrawingStatus
+            xx(1) , xy(1)-offset , nan , xy(1)+offset, xx(2) , nan , xy(1) , xy(1)        , nan , xy(1)        , xy(1)  ;...
+            xy(2) , xy(2)        , nan , xy(2)       , xy(2) , nan , yy(1) , xy(2)-offset , nan , xy(2)+offset , yy(2)  ...
+            ];
+        
+        % Update crosshair
+        set(plt,'XData',crossHair_Pnts(1,:),'YData',crossHair_Pnts(2,:));
+        
+        % Check drawing status
+        switch globalDrawOnTarget.DrawingStatus
+            case 'NewDrawing'
+                % Hide connection between current position and
+                %   previous drawing point
+                if size(globalDrawOnTarget.xDraw,2) == 2
+                    % Account for initial condition of xDraw = []
+                    set(globalDrawOnTarget.hDraw,'Visible','on',...
+                        'XData',globalDrawOnTarget.xDraw(:,1),...
+                        'YData',globalDrawOnTarget.xDraw(:,2));
+                end
+                
+                % Hide closest point
+                set(globalDrawOnTarget.hClosestPoint,'Visible','off');
+                
             case 'ContinuedDrawing'
-                % Show connection to previous drawing point
-                set(globalDrawOnTarget.hDraw,...
+                % Show connection between current position and
+                %   previous drawing point
+                set(globalDrawOnTarget.hDraw,'Visible','on',...
                     'XData',[globalDrawOnTarget.xDraw(:,1); xy(1)],...
                     'YData',[globalDrawOnTarget.xDraw(:,2); xy(2)]);
                 
@@ -451,13 +495,20 @@ switch callbackdata.EventName
                     findClosestPoint(globalDrawOnTarget.xDraw,xy);
                 
                 % Show closest point
-                set(globalDrawOnTarget.hClosestPoint,...
+                set(globalDrawOnTarget.hClosestPoint,'Visible','on',...
                     'XData',[xy(:,1); globalDrawOnTarget.xClosestPoint(:,1)],...
                     'YData',[xy(:,2); globalDrawOnTarget.xClosestPoint(:,2)]);
-       end
-       
-       % Update drawing
-       drawnow;
+                
+            case 'ExitDrawing'
+                % Exit triggered
+                
+            otherwise
+                fprintf(2,'Unexpected Case: "globalDrawOnTarget.DrawingStatus = %s\n',globalDrawOnTarget.DrawingStatus);
+                
+        end
+        
+        % Update drawing
+        drawnow;
         
     otherwise
         callbackdata.EventName
@@ -470,7 +521,6 @@ function figWindowKeyReleaseFCN(src, callbackdata)
 
 fprintf('figWindowKeyReleaseFCN\n',mfilename);
 callbackdata
-src.CurrentCharacter
 
 end
 
@@ -479,7 +529,6 @@ function figWindowScrollWheelFCN(src, callbackdata)
 
 fprintf('figWindowScrollWheelFCN\n',mfilename);
 callbackdata
-src.CurrentCharacter
 
 end
 
@@ -491,6 +540,7 @@ function xyClose = findClosestPoint(xyAll,xy)
 if isempty(xyAll)
     % No drawing data
     xyClose = nan(1,2);
+    return
 end
 if ~any(isfinite(xyAll(end,:)))
     % Drawing is in transition
@@ -498,26 +548,27 @@ if ~any(isfinite(xyAll(end,:)))
     return
 end
 
-% Isolate "last chunk"
-% Find rows where both columns are not NaN
-valid_rows = ~isnan(xyAll(:,1)) & ~isnan(xyAll(:,2));
+% Isolate "last continuous drawing"
+% Find rows where both columns are NaN
+nanRows = isnan(xyAll(:,1)) & isnan(xyAll(:,2));
 
 % Find the index of the last chunk of values
-last_chunk_start_index = find(valid_rows, 1, 'last');
+idxLastDraw = find(nanRows, 1, 'last');
+idxLastDraw = idxLastDraw+1;
 
 % Slice the array to get the last chunk
-xyAll_chunk = xyAll(last_chunk_start_index:end,:);
+xyLastDraw = xyAll(idxLastDraw:end,:);
 
 % Find closest point
-dxyAll = xyAll_chunk - repmat(xy,size(xyAll,1),1);
-dxyAll = dxyAll.^2;
-dxyAll = sum(dxyAll,2);
+dxyLastDraw = xyLastDraw - repmat(xy,size(xyLastDraw,1),1);
+dxyLastDraw = dxyLastDraw.^2;
+dxyLastDraw = sum(dxyLastDraw,2);
 
-tfFinite = isfinite(dxyAll);
-tfMin = dxyAll == min(dxyAll(tfFinite));
+tfFinite = isfinite(dxyLastDraw);
+tfMin = dxyLastDraw == min(dxyLastDraw(tfFinite));
 
 tfMin = tfFinite & tfMin;
 
-xyClose = xyAll_chunk(tfMin,:);
+xyClose = xyLastDraw(tfMin,:);
 
 end
