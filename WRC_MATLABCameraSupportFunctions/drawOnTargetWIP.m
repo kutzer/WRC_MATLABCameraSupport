@@ -85,8 +85,8 @@ globalDrawOnTarget.yy = yy;
 globalDrawOnTarget.zOffset = 20;
 globalDrawOnTarget.hCrossHair = plot(axs,nan,nan,'k','Tag','CrossHair');
 globalDrawOnTarget.DrawingStatus = 'NewDrawing';
-globalDrawOnTarget.xDrawing = [];
-globalDrawOnTarget.hDrawing = plot(axs,nan,nan,'o-','Tag','Drawing',...
+globalDrawOnTarget.xDraw = [];
+globalDrawOnTarget.hDraw = plot(axs,nan,nan,'o-','Tag','Drawing',...
     'Color',[0.00,0.45,0.74],'LineWidth',2);
 globalDrawOnTarget.xMove = [];
 globalDrawOnTarget.hMove = plot(axs,nan,nan,'x--','Tag','Transition',...
@@ -178,9 +178,6 @@ set(txt,'FontUnits','Normalized','FontSize',0.025,'FontWeight','bold');
 
 %% Draw points
 title(axs,sprintf('Click points\n[Center Mouse Button to Exit]'));
-%X_p = [];
-startNew = false;
-plt = plot(axs,0,0,'o-','LineWidth',2);
 
 % Enable KeyPressFcn
 fig.ButtonDownFcn = @figButtonDownFCN;
@@ -193,6 +190,18 @@ fig.WindowButtonUpFcn = @figWindowButtonUpFCN;
 fig.WindowButtonMotionFcn = @figWindowButtonMotionFCN;
 fig.WindowScrollWheelFcn = @figWindowScrollWheelFCN;
 
+%% Run function until exit condition is reached
+% TODO - Consider a uiwait
+while true
+    if matches(globalDrawOnTarget.DrawingStatus,'ExitDrawing')
+        break
+    end
+    drawnow
+end
+
+%% Package outputs
+Xd_p = globalDrawOnTarget.xDraw;
+Xm_p = globalDrawOnTarget.xMove;
 %{
 while true
     axes(axs);
@@ -302,15 +311,15 @@ switch lower(src.SelectionType)
                 % Switch Drawing Status
                 globalDrawOnTarget.DrawingStatus = 'ContinuedDrawing';
                 % Add transition point
-                globalDrawOnTarget.xDrawing(end+1,:) = nan(1,2);
+                globalDrawOnTarget.xDraw(end+1,:) = nan(1,2);
                 globalDrawOnTarget.xMove(end+1,:) = ...
                     [xy,globalDrawOnTarget.zOffset];
                 % Add new drawing point
-                globalDrawOnTarget.xDrawing(end+1,:) = xy;
+                globalDrawOnTarget.xDraw(end+1,:) = xy;
                 globalDrawOnTarget.xMove(end+1,:) = nan(1,3);
             case 'ContinuedDrawing'
                 % Add new drawing point
-                globalDrawOnTarget.xDrawing(end+1,:) = xy;
+                globalDrawOnTarget.xDraw(end+1,:) = xy;
                 globalDrawOnTarget.xMove(end+1,:) = nan(1,3);
             case 'ExitDrawing'
                 % Exit triggered
@@ -323,7 +332,7 @@ switch lower(src.SelectionType)
         % -> Exit drawing
         
         % Switch Drawing Status
-        globalDrawOnTarget.DrawingStatus = 'ContinuedDrawing';
+        globalDrawOnTarget.DrawingStatus = 'ExitDrawing';
                 
     case 'alt'
         % Right mouse button
@@ -337,12 +346,12 @@ switch lower(src.SelectionType)
                 globalDrawOnTarget.DrawingStatus = 'NewDrawing';
                 % Add transition point
                 % -> Get last drawing point
-                tfXY = isfinite(globalDrawOnTarget.xDrawing);
+                tfXY = isfinite(globalDrawOnTarget.xDraw);
                 tfXY = tfXY(:,1) & tfXY(:,2);
-                xy = globalDrawOnTarget.xDrawing(tfXY,:);
+                xy = globalDrawOnTarget.xDraw(tfXY,:);
                 xy = xy(end,:);
                 % -> Define transition point
-                globalDrawOnTarget.xDrawing(end+1,:) = nan(1,2);
+                globalDrawOnTarget.xDraw(end+1,:) = nan(1,2);
                 globalDrawOnTarget.xMove(end+1,:) = ...
                     [xy,globalDrawOnTarget.zOffset];
             case 'ExitDrawing'
@@ -355,20 +364,18 @@ switch lower(src.SelectionType)
         % Double-click left mouse button
         % -> Close the drawing
         
-        
-        
     otherwise
         fprintf('\tUnexpected response: %s',src.SelectionType);
 end
 
-globalDrawOnTarget.xDrawing
+globalDrawOnTarget.xDraw
 globalDrawOnTarget.xMove
 
 % Update plots
 % -> Update drawing
-set(globalDrawOnTarget.hDrawing,...
-    'XData',globalDrawOnTarget.xDrawing(:,1),...
-    'YData',globalDrawOnTarget.xDrawing(:,2));
+set(globalDrawOnTarget.hDraw,...
+    'XData',globalDrawOnTarget.xDraw(:,1),...
+    'YData',globalDrawOnTarget.xDraw(:,2));
 % -> Update transition
 set(globalDrawOnTarget.hMove,...
     'XData',globalDrawOnTarget.xMove(:,1),...
@@ -435,13 +442,13 @@ switch callbackdata.EventName
        switch globalDrawOnTarget.DrawingStatus
             case 'ContinuedDrawing'
                 % Show connection to previous drawing point
-                set(globalDrawOnTarget.hDrawing,...
-                    'XData',[globalDrawOnTarget.xDrawing(:,1); xy(1)],...
-                    'YData',[globalDrawOnTarget.xDrawing(:,2); xy(2)]);
+                set(globalDrawOnTarget.hDraw,...
+                    'XData',[globalDrawOnTarget.xDraw(:,1); xy(1)],...
+                    'YData',[globalDrawOnTarget.xDraw(:,2); xy(2)]);
                 
                 % Find closest point
                 globalDrawOnTarget.xClosestPoint = ...
-                    findClosestPoint(globalDrawOnTarget.xDrawing,xy);
+                    findClosestPoint(globalDrawOnTarget.xDraw,xy);
                 
                 % Show closest point
                 set(globalDrawOnTarget.hClosestPoint,...
