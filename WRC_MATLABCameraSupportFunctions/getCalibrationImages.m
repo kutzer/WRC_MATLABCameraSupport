@@ -33,6 +33,20 @@ function varargout = getCalibrationImages(prv,varargin)
 %   [imageFolder,imageNames] = getCalibrationImages(___) returns the full 
 %   path to the imageFolder and a cell array of the image names used.
 %
+%   Input(s)
+%       prv         - array of camera preview image object(s). Multiple
+%                     previews will alter the default image name. 
+%       n           - [OPTIONAL] number of calibration images. The default
+%                     number of images is 12. 
+%       imageName   - [OPTIONAL] base name for images saved during 
+%                     calibration. 
+%       imageFolder - path used to save calibration images
+%       dt          - [OPTIONAL] 
+%
+%   Output(s)
+%       imageFolder - 
+%       imageNames  - 
+%
 %   See also initCamera cameraCalibrator
 %
 %   M. Kutzer, 30Jan2016, USNA
@@ -47,6 +61,7 @@ function varargout = getCalibrationImages(prv,varargin)
 %               filenames. 
 %   06Feb2020 - Updated to also return image names.
 %   08Mar2021 - Updated to include fixed time interval option.
+%   15Nov2023 - Updated documentation
 
 %% Parse and check inputs
 % Check number of inputs
