@@ -499,8 +499,17 @@ if ~any(isfinite(xyAll(end,:)))
 end
 
 % Isolate "last chunk"
+% Find rows where both columns are not NaN
+valid_rows = ~isnan(xyAll(:,1)) & ~isnan(xyAll(:,2));
+
+% Find the index of the last chunk of values
+last_chunk_start_index = find(valid_rows, 1, 'last');
+
+% Slice the array to get the last chunk
+xyAll_chunk = xyAll(last_chunk_start_index:end,:);
+
 % Find closest point
-dxyAll = xyAll - repmat(xy,size(xyAll,1),1);
+dxyAll = xyAll_chunk - repmat(xy,size(xyAll,1),1);
 dxyAll = dxyAll.^2;
 dxyAll = sum(dxyAll,2);
 
@@ -509,6 +518,6 @@ tfMin = dxyAll == min(dxyAll(tfFinite));
 
 tfMin = tfFinite & tfMin;
 
-xyClose = xyAll(tfMin,:);
+xyClose = xyAll_chunk(tfMin,:);
 
 end
