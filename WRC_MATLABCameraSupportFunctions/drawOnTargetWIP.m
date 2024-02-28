@@ -491,7 +491,7 @@ if ~any(isfinite(xyAll(end,:)))
     return
 end
 
-
+% Isolate "last chunk"
 % Find closest point
 dxyAll = xyAll - repmat(xy,size(xyAll,1),1);
 dxyAll = dxyAll.^2;
