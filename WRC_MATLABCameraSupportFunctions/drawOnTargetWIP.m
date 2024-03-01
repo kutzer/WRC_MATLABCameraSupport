@@ -86,6 +86,31 @@ xlim(axs,xx);
 ylim(axs,yy);
 zlim(axs,[-1,1]);
 
+% Center figure
+centerfig(fig);
+
+%% Create instruction figure
+fig.CloseRequestFcn = @figCloseRequestFCN;
+% Setup figure
+figG = figure('Name','drawOnTargetWIP Key Guide');
+set(figG,'Toolbar','none','MenuBar','none','NumberTitle','off');
+set(figG,'Units','normalized','Position',[0.76,0.56,0.23,0.40]);
+set(figG,'Tag','videoAnalyzer Key Guide');
+set(figG,'DeleteFcn',@figCloseRequestFCN);
+set(figG,'WindowKeyPressFcn',@videoAnalyzerKeyCallback);
+% Setup axes
+axsG = axes('Parent',figG,'Visible','off');
+set(axsG,'Units','normalized','Position',[0,0,1,1]);
+xlim([0,8]);
+ylim([0,8]);
+daspect([1 1 1]);
+
+txt = text(axsG,0,8,...
+    makeMessage,'VerticalAlignment','top','FontName','monospaced',...
+    'FontWeight','bold');
+
+drawnow;
+
 %% Package global data
 globalDrawOnTarget.fig = fig;
 globalDrawOnTarget.axs = axs;
@@ -205,6 +230,12 @@ disableCallbacks(fig)
 
 % Clear title
 title(axs,' ');
+
+%% Check if no drawing was made
+if isempty(globalDrawOnTarget.xDraw)
+    X_t = [];
+    return
+end
 
 %% Combine drawing and movement points
 % Drawing points
@@ -350,18 +381,27 @@ switch callbackdata.EventName
         end
     otherwise
         %fprintf(2,'Unexpected event type: %s\n',callbackdata.EventName);
+        % Skip remaining
+        return
 end
 
 % Update plots
+
 % -> Update drawing
 set(globalDrawOnTarget.hDraw,...
     'XData',globalDrawOnTarget.xDraw(:,1),...
     'YData',globalDrawOnTarget.xDraw(:,2));
+
 % -> Update transition
 set(globalDrawOnTarget.hMove,...
     'XData',globalDrawOnTarget.xMove(:,1),...
     'YData',globalDrawOnTarget.xMove(:,2),...
     'ZData',globalDrawOnTarget.xMove(:,3));
+
+% -> Update closest point
+% Hide closest point
+set(globalDrawOnTarget.hClosestPoint,'Visible','off');
+
 drawnow
 
 end
@@ -420,17 +460,9 @@ switch lower(src.SelectionType)
 
         % Switch Drawing Status
         globalDrawOnTarget.DrawingStatus = 'ExitDrawing';
-
-        % Hide connection between current position and previous drawing point
-        if size(globalDrawOnTarget.xDraw,2) == 2
-            % Account for initial condition of xDraw = []
-            set(globalDrawOnTarget.hDraw,'Visible','on',...
-                'XData',globalDrawOnTarget.xDraw(:,1),...
-                'YData',globalDrawOnTarget.xDraw(:,2));
-        end
-
-        % Hide closest point
-        set(globalDrawOnTarget.hClosestPoint,'Visible','off');
+        
+        % Exit triggered
+        disableCallbacks(globalDrawOnTarget.fig);
 
     case 'alt'
         % Right mouse button
@@ -468,15 +500,11 @@ switch lower(src.SelectionType)
     case 'open'
         % Double-click left mouse button
         % -> Connect the drawing to closest point
-        globalDrawOnTarget.DrawingStatus
         switch globalDrawOnTarget.DrawingStatus
             case 'NewDrawing'
                 % Do nothing
 
             case 'ContinuedDrawing'
-                % DEBUG
-                globalDrawOnTarget.xLastDraw
-                globalDrawOnTarget.xClosestPoint
 
                 if ~any( isnan(globalDrawOnTarget.xLastDraw ) )
                     % Connect the drawing to closest point
@@ -591,6 +619,9 @@ function figCloseRequestFCN(src, callbackdata)
 global globalDrawOnTarget
 
 globalDrawOnTarget.DrawingStatus = 'ExitDrawing';
+
+% Exit triggered
+disableCallbacks(globalDrawOnTarget.fig);
 
 end
 
@@ -759,9 +790,24 @@ fig.WindowButtonMotionFcn = '';
 fig.WindowScrollWheelFcn = '';
 fig.CloseRequestFcn = 'closereq';
 
+% Hide closest point
+set(globalDrawOnTarget.hClosestPoint,'Visible','off');
+
+% Hide connection between current position and previous drawing point
+if size(globalDrawOnTarget.xDraw,2) == 2
+    % Account for initial condition of xDraw = []
+    set(globalDrawOnTarget.hDraw,'Visible','on',...
+        'XData',globalDrawOnTarget.xDraw(:,1),...
+        'YData',globalDrawOnTarget.xDraw(:,2));
+end
+
+% Hide crosshair
 set(globalDrawOnTarget.hCrossHair,'Visible','off');
+
+% Return point to standard arrow
 set(fig,'Pointer','Arrow');
 
+% Create filename for saving
 globalDrawOnTarget.fname = sprintf('drawOnTargetWIP_%s',...
     string(datetime('now'),'yyMMdd_hhmmss' ));
 
