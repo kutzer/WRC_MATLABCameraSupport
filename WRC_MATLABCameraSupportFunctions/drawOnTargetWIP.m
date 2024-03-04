@@ -44,7 +44,7 @@ function X_t = drawOnTargetWIP(varargin)
 %     [  Left Mouse,  Single Click] - Add new point to the drawing
 %
 %     [  Left Mouse,  Double Click] - Add new point to drawing and connect
-%                                     that point to closest point in drawing 
+%                                     that point to closest point in drawing
 %
 %     [ Right Mouse,  Single Click] - Transition to a new, disconnected
 %                                     drawing
@@ -90,7 +90,6 @@ zlim(axs,[-1,1]);
 centerfig(fig);
 
 %% Create instruction figure
-fig.CloseRequestFcn = @figCloseRequestFCN;
 % Setup figure
 figG = figure('Name','drawOnTargetWIP Key Guide');
 set(figG,'Toolbar','none','MenuBar','none','NumberTitle','off');
@@ -109,10 +108,14 @@ txt = text(axsG,0,8,...
     makeMessage,'VerticalAlignment','top','FontName','monospaced',...
     'FontWeight','bold');
 
+% Apply close request function
+figG.CloseRequestFcn = @figCloseRequestFCN;
+
 drawnow;
 
 %% Package global data
 globalDrawOnTarget.fig = fig;
+globalDrawOnTarget.figG = figG;
 globalDrawOnTarget.axs = axs;
 globalDrawOnTarget.xx = xx;
 globalDrawOnTarget.yy = yy;
@@ -271,8 +274,36 @@ save([globalDrawOnTarget.fname,'.mat'],'X_t');
 saveas(fig,[globalDrawOnTarget.fname,'.fig'],'fig');
 saveas(fig,[globalDrawOnTarget.fname,'.png'],'png');
 
-%% Internal functions (shared workspace)
-% [NONE]
+%% Internal functions (shared workspace) 
+% -------------------------------------------------------------------------
+    function msg = makeMessage
+        %----0123456789012345678901234567890123456789012345678901234567890123456789
+        msg = sprintf([...
+            'UI Controls:\n',...
+            ' ----- Left Mouse (single click) --- Add new point to drawing\n',...
+            '\n',...
+            ' ----- Left Mouse (double click) --- Add new point to drawing and \n',...
+            '                                    connect the new point to the \n',...
+            '                                    closest point in the drawing\n',...
+            '\n',...
+            ' ---- Right Mouse (single click) --- Transition to a new, disconnected \n',...
+            '                                    drawing\n',...
+            '\n',...
+            ' --- Center Mouse (single click) --- Exit user drawing interface\n',...
+            '\n',...
+            ' --- Center Mouse (scroll up/down) - [UNUSED, coming soon]\n',...
+            '\n',...
+            ' ------ Backspace (press/release) -- Delete prior drawing or transition \n',...
+            '                                     point\n',...
+            '\n',...
+            ' ---- Right Arrow (press/release) -- [UNUSED, coming soon]\n',...
+            '\n',...
+            ' ----- Left Arrow (press/release) -- [UNUSED, coming soon]\n',...
+            '\n',...
+            ' ------- Up Arrow (press/release) -- [UNUSED, coming soon]\n',...
+            '\n',...
+            ' ----- Down Arrow (press/release) -- [UNUSED, coming soon]\n']);
+    end
 
 end
 
@@ -460,7 +491,7 @@ switch lower(src.SelectionType)
 
         % Switch Drawing Status
         globalDrawOnTarget.DrawingStatus = 'ExitDrawing';
-        
+
         % Exit triggered
         disableCallbacks(globalDrawOnTarget.fig);
 
@@ -622,6 +653,9 @@ globalDrawOnTarget.DrawingStatus = 'ExitDrawing';
 
 % Exit triggered
 disableCallbacks(globalDrawOnTarget.fig);
+
+% Close UI key guide
+delete(globalDrawOnTarget.figG);
 
 end
 
