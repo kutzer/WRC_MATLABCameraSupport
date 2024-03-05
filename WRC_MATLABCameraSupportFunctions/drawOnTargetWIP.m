@@ -134,7 +134,7 @@ globalDrawOnTarget.hClosestPoint = plot(axs,nan,nan,':','Tag','ClosestPoint',...
 globalDrawOnTarget.DeletePoint = false;
 globalDrawOnTarget.ArrowPush = false;
 globalDrawOnTarget.EscapePush = false;
-globalDrawOnTarget.RadiusFrac = 0;      % Radius = (1/radfrac)*(1/2) distance between points 
+globalDrawOnTarget.RadiusFrac = 0;      % Radius = (1/radfrac)*(1/2) distance between points
 globalDrawOnTarget.ArcLengthFrac = 1;   % Total points along arc length
 globalDrawOnTarget.PointDistance = 0;
 
@@ -146,10 +146,10 @@ if ~isempty(im)
     % Define image size
     x_im = size(im,2);
     y_im = size(im,1);
-
+    
     % Define scale
     scale = min([xx(2)/x_im,yy(2)/y_im]);
-
+    
     % Define "image" relative to "corner" frame
     H_c2a = Tz(-0.1)*Rx(pi)*Tx(xx(2)/2)*Ty(-yy(2)/2);
     h_c2a = triad('Parent',axs,'Scale',20,'Matrix',H_c2a,'LineWidth',2);
@@ -157,12 +157,12 @@ if ~isempty(im)
     h_s2c = triad('Parent',h_c2a,'Scale',30,'Matrix',H_s2c);
     H_i2s = Sx(scale)*Sy(scale);
     h_i2s = triad('Parent',h_s2c,'Scale',max([x_im,y_im])/2,'Matrix',H_i2s);
-
+    
     % Show image
     img = imshow(im,'Parent',axs);
     set(img,'Parent',h_i2s,'AlphaData',0.5);
     set(axs,'Visible','on','YDir','Normal');
-
+    
     % Hide triads
     hideTriad(h_c2a);
     hideTriad(h_s2c);
@@ -197,7 +197,7 @@ for i = 1:3
     % Reference dot to paper frame
     dot_o = H_t2p*dot_t;
     dot_o(4,:) = [];
-
+    
     % Render dot on paper
     ptc(i) = patch('Faces',1:n,'Vertices',dot_o.','Parent',axs,...
         'FaceColor','k','EdgeColor','none');
@@ -281,7 +281,7 @@ save([globalDrawOnTarget.fname,'.mat'],'X_t');
 saveas(fig,[globalDrawOnTarget.fname,'.fig'],'fig');
 saveas(fig,[globalDrawOnTarget.fname,'.png'],'png');
 
-%% Internal functions (shared workspace) 
+%% Internal functions (shared workspace)
 % -------------------------------------------------------------------------
 
 end
@@ -315,16 +315,16 @@ switch callbackdata.EventName
         %fprintf('WindowKeyPress\n');
         switch lower(callbackdata.Key)
             case 'backspace'
-
+                
                 % Check for "hold down" button condition
                 if globalDrawOnTarget.DeletePoint
                     % User is holding button, ignore
                     return
                 end
-
+                
                 % Toggle delete point flag
                 globalDrawOnTarget.DeletePoint = true;
-
+                
                 % Account for drawing status
                 switch globalDrawOnTarget.DrawingStatus
                     case 'NewDrawing'
@@ -332,15 +332,15 @@ switch callbackdata.EventName
                         % -> Toggle drawing status
                         globalDrawOnTarget.DrawingStatus = ...
                             'ContinuedDrawing';
-
+                        
                         % Delete point
                         globalDrawOnTarget.xDraw(end,:) = [];
                         globalDrawOnTarget.xMove(end,:) = [];
-
+                        
                         % Show connection between points
                         showConnections;
                         updatePlot = true;
-
+                        
                     case 'ContinuedDrawing'
                         % A drawing is currently underway
                         % -> Check to see if this is the first point of
@@ -352,23 +352,23 @@ switch callbackdata.EventName
                                 % -> Toggle drawing status
                                 globalDrawOnTarget.DrawingStatus = ...
                                     'NewDrawing';
-
+                                
                                 % Delete previous two points!
                                 globalDrawOnTarget.xDraw(end,:) = [];
                                 globalDrawOnTarget.xMove(end,:) = [];
                                 globalDrawOnTarget.xDraw(end,:) = [];
                                 globalDrawOnTarget.xMove(end,:) = [];
-
+                                
                                 % Hide connections between points
                                 hideConnections;
                                 updatePlot = true;
-
+                                
                             else
                                 % Delete point
                                 globalDrawOnTarget.xDraw(end,:) = [];
                                 globalDrawOnTarget.xMove(end,:) = [];
                                 updatePlot = true;
-
+                                
                             end
                         else
                             % Delete point
@@ -377,7 +377,7 @@ switch callbackdata.EventName
                             updatePlot = true;
                         end
                 end
-
+                
             case 'uparrow'
                 % Check for "hold down" button condition
                 if globalDrawOnTarget.ArrowPush
@@ -387,14 +387,14 @@ switch callbackdata.EventName
                 
                 % Toggle arrow push flag
                 globalDrawOnTarget.ArrowPush = true;
-
+                
                 % Increase arc length fraction
                 globalDrawOnTarget.ArcLengthFrac =...
                     globalDrawOnTarget.ArcLengthFrac + 1;
                 
                 % Update UI message
                 makeMessage(globalDrawOnTarget.figG);
-
+                
             case 'downarrow'
                 % Check for "hold down" button condition
                 if globalDrawOnTarget.ArrowPush
@@ -404,14 +404,14 @@ switch callbackdata.EventName
                 
                 % Toggle arrow push flag
                 globalDrawOnTarget.ArrowPush = true;
-
+                
                 % Decrease arc length fraction
                 globalDrawOnTarget.ArcLengthFrac =...
                     globalDrawOnTarget.ArcLengthFrac - 1;
                 
                 % Update UI message
                 makeMessage(globalDrawOnTarget.figG);
-
+                
             case 'leftarrow'
                 % Check for "hold down" button condition
                 if globalDrawOnTarget.ArrowPush
@@ -421,7 +421,7 @@ switch callbackdata.EventName
                 
                 % Toggle arrow push flag
                 globalDrawOnTarget.ArrowPush = true;
-
+                
             case 'rightarrow'
                 % Check for "hold down" button condition
                 if globalDrawOnTarget.ArrowPush
@@ -431,7 +431,7 @@ switch callbackdata.EventName
                 
                 % Toggle arrow push flag
                 globalDrawOnTarget.ArrowPush = true;
-
+                
             case 'escape'
                 % Check for "hold down" button condition
                 if globalDrawOnTarget.EscapePush
@@ -441,13 +441,13 @@ switch callbackdata.EventName
                 
                 % Toggle escape push flag
                 globalDrawOnTarget.EscapePush = true;
-
+                
                 globalDrawOnTarget.RadiusFrac = 0;
                 globalDrawOnTarget.ArcLengthFrac = 1;
-
+                
                 % Update UI message
                 makeMessage(globalDrawOnTarget.figG);
-
+                
             otherwise
                 %fprintf('  WindowKeyPress - Specified key "%s" is unused.\n',...
                 %    callbackdata.Key);
@@ -456,39 +456,39 @@ switch callbackdata.EventName
         %fprintf('WindowKeyRelease\n');
         switch lower(callbackdata.Key)
             case 'backspace'
-
+                
                 % Toggle delete point flag
                 globalDrawOnTarget.DeletePoint = false;
-
+                
             case 'uparrow'
-
+                
                 % Toggle arrow push flag
                 globalDrawOnTarget.ArrowPush = false;
-
+                
             case 'downarrow'
-
+                
                 % Toggle arrow push flag
                 globalDrawOnTarget.ArrowPush = false;
-
+                
             case 'leftarrow'
-
+                
                 % Toggle arrow push flag
                 globalDrawOnTarget.ArrowPush = false;
-
+                
             case 'rightarrow'
-
+                
                 % Toggle arrow push flag
                 globalDrawOnTarget.ArrowPush = false;
-
+                
             case 'escape'
-
+                
                 % Toggle escape push flag
                 globalDrawOnTarget.EscapePush = false;
-
+                
             otherwise
                 %fprintf('WindowKeyRelease - Specified key "%s" is unused.\n',...
                 %    callbackdata.Key);
-
+                
         end
     otherwise
         %fprintf(2,'Unexpected event type: %s\n',callbackdata.EventName);
@@ -507,17 +507,17 @@ if updatePlot
     set(globalDrawOnTarget.hDraw,...
         'XData',globalDrawOnTarget.xDraw(:,1),...
         'YData',globalDrawOnTarget.xDraw(:,2));
-
+    
     % -> Update transition
     set(globalDrawOnTarget.hMove,...
         'XData',globalDrawOnTarget.xMove(:,1),...
         'YData',globalDrawOnTarget.xMove(:,2),...
         'ZData',globalDrawOnTarget.xMove(:,3));
-
+    
     % -> Update closest point
     % Hide closest point
     set(globalDrawOnTarget.hClosestPoint,'Visible','off');
-
+    
     drawnow
 end
 
@@ -542,103 +542,103 @@ switch lower(src.SelectionType)
     case 'normal'
         % Left mouse button
         % -> Start or continue drawing
-
+        
         switch globalDrawOnTarget.DrawingStatus
             case 'NewDrawing'
                 % Switch Drawing Status
                 globalDrawOnTarget.DrawingStatus = 'ContinuedDrawing';
-
+                
                 % Add transition point
                 globalDrawOnTarget.xDraw(end+1,:) = nan(1,2);
                 globalDrawOnTarget.xMove(end+1,:) = ...
                     [xy,globalDrawOnTarget.zOffset];
-
+                
                 % Add new drawing point
                 globalDrawOnTarget.xDraw(end+1,:) = xy;
                 globalDrawOnTarget.xMove(end+1,:) = nan(1,3);
-
+                
             case 'ContinuedDrawing'
                 % Add new drawing point
                 globalDrawOnTarget.xDraw(end+1,:) = xy;
                 globalDrawOnTarget.xMove(end+1,:) = nan(1,3);
-
+                
             case 'ExitDrawing'
                 % Exit triggered
                 disableCallbacks(globalDrawOnTarget.fig);
-
+                
             otherwise
                 %fprintf(2,'[figWindowButtonDownFCN] Unexpected Case: *.DrawingStatus = "%s"\n',...
                 %    globalDrawOnTarget.DrawingStatus);
         end
-
+        
     case 'extend'
         % Center mouse button
         % -> Exit drawing
-
+        
         % Switch Drawing Status
         globalDrawOnTarget.DrawingStatus = 'ExitDrawing';
-
+        
         % Exit triggered
         disableCallbacks(globalDrawOnTarget.fig);
-
+        
     case 'alt'
         % Right mouse button
         % -> Add transition between drawings
-
+        
         switch globalDrawOnTarget.DrawingStatus
             case 'NewDrawing'
                 % Do nothing (drawing is already in transition)
-
+                
             case 'ContinuedDrawing'
                 % Switch Drawing Status
                 globalDrawOnTarget.DrawingStatus = 'NewDrawing';
-
+                
                 % Add transition point
                 % -> Get last drawing point
                 tfXY = isfinite(globalDrawOnTarget.xDraw);
                 tfXY = tfXY(:,1) & tfXY(:,2);
                 xy = globalDrawOnTarget.xDraw(tfXY,:);
                 xy = xy(end,:);
-
+                
                 % -> Define transition point
                 globalDrawOnTarget.xDraw(end+1,:) = nan(1,2);
                 globalDrawOnTarget.xMove(end+1,:) = ...
                     [xy,globalDrawOnTarget.zOffset];
-
+                
             case 'ExitDrawing'
                 % Exit triggered
                 disableCallbacks(globalDrawOnTarget.fig);
-
+                
             otherwise
                 %fprintf(2,'[figWindowButtonDownFCN] Unexpected Case: *.DrawingStatus = "%s"\n',...
                 %    globalDrawOnTarget.DrawingStatus);
         end
-
+        
     case 'open'
         % Double-click left mouse button
         % -> Connect the drawing to closest point
         switch globalDrawOnTarget.DrawingStatus
             case 'NewDrawing'
                 % Do nothing
-
+                
             case 'ContinuedDrawing'
-
+                
                 if ~any( isnan(globalDrawOnTarget.xLastDraw ) )
                     % Connect the drawing to closest point
                     globalDrawOnTarget.xDraw(end+1,:) = ...
                         globalDrawOnTarget.xClosestPoint;
                     globalDrawOnTarget.xMove(end+1,:) = nan(1,3);
                 end
-
+                
             case 'ExitDrawing'
                 % Exit triggered
                 disableCallbacks(globalDrawOnTarget.fig);
-
+                
             otherwise
                 %fprintf(2,'[figWindowButtonDownFCN] Unexpected Case: *.DrawingStatus = "%s"\n',...
                 %    globalDrawOnTarget.DrawingStatus);
         end
-
+        
     otherwise
         %fprintf(2,'[figWindowButtonDownFCN] Unexpected case: src.SelectionType = "%s"\n',...
         %    src.SelectionType);
@@ -646,14 +646,18 @@ end
 
 % Update plots
 % -> Update drawing
-set(globalDrawOnTarget.hDraw,...
-    'XData',globalDrawOnTarget.xDraw(:,1),...
-    'YData',globalDrawOnTarget.xDraw(:,2));
+if numel(globalDrawOnTarget.xDraw) >= 2
+    set(globalDrawOnTarget.hDraw,...
+        'XData',globalDrawOnTarget.xDraw(:,1),...
+        'YData',globalDrawOnTarget.xDraw(:,2));
+end
 % -> Update transition
-set(globalDrawOnTarget.hMove,...
-    'XData',globalDrawOnTarget.xMove(:,1),...
-    'YData',globalDrawOnTarget.xMove(:,2),...
-    'ZData',globalDrawOnTarget.xMove(:,3));
+if numel(globalDrawOnTarget.xMove) >= 3
+    set(globalDrawOnTarget.hMove,...
+        'XData',globalDrawOnTarget.xMove(:,1),...
+        'YData',globalDrawOnTarget.xMove(:,2),...
+        'ZData',globalDrawOnTarget.xMove(:,3));
+end
 drawnow
 
 end
@@ -682,41 +686,41 @@ switch callbackdata.EventName
     case 'WindowMouseMotion'
         % Get just x/y of current point in axes
         xy = boundAxsXY( axs.CurrentPoint(1,1:2) );
-
+        
         % Define crosshair x/y coordinates
         crossHair_Pnts = [...
             xx(1) , xy(1)-offset , nan , xy(1)+offset, xx(2) , nan , xy(1) , xy(1)        , nan , xy(1)        , xy(1)  ;...
             xy(2) , xy(2)        , nan , xy(2)       , xy(2) , nan , yy(1) , xy(2)-offset , nan , xy(2)+offset , yy(2)  ...
             ];
-
+        
         % Update crosshair
         set(plt,'XData',crossHair_Pnts(1,:),'YData',crossHair_Pnts(2,:));
-
+        
         % Check drawing status
         switch globalDrawOnTarget.DrawingStatus
             case 'NewDrawing'
                 % Hide connection between current position and
                 %   previous drawing point
                 hideConnections;
-
+                
             case 'ContinuedDrawing'
                 % Show connection between current position and
                 %   previous drawing point
                 showConnections(xy);
-
+                
             case 'ExitDrawing'
                 % Exit triggered
                 disableCallbacks(globalDrawOnTarget.fig);
-
+                
             otherwise
                 %fprintf(2,'[figWindowButtonMotionFCN] Unexpected Case: *.DrawingStatus = "%s"\n',...
                 %    globalDrawOnTarget.DrawingStatus);
-
+                
         end
-
+        
         % Update drawing
         drawnow;
-
+        
     otherwise
         callbackdata.EventName
 end
@@ -736,26 +740,26 @@ switch callbackdata.EventName
         if callbackdata.VerticalScrollCount < 0
             % Scroll Up - Increase radius
             %fprintf('Scroll Up\n');
-
+            
             globalDrawOnTarget.RadiusFrac = ...
                 globalDrawOnTarget.RadiusFrac + deltaRadius;
             
             % Update UI message
             makeMessage(globalDrawOnTarget.figG);
-
+            
         end
-
+        
         if callbackdata.VerticalScrollCount > 0
             % Scoll Down - Decrease radius
             %fprintf('Scroll Down\n');
-
+            
             globalDrawOnTarget.RadiusFrac = ...
                 globalDrawOnTarget.RadiusFrac - deltaRadius;
-
+            
             % Update UI message
             makeMessage(globalDrawOnTarget.figG);
         end
-
+        
     otherwise
         fprintf(2,'[figWindowScrollWheelFCN] Unexpected Event Type: %s\n',callbackdata.EventName);
 end
@@ -977,6 +981,11 @@ set(fig,'Pointer','Arrow');
 % Create filename for saving
 globalDrawOnTarget.fname = sprintf('drawOnTargetWIP_%s',...
     string(datetime('now'),'yyMMdd_hhmmss' ));
+
+% Delete guide figure
+if ishandle(globalDrawOnTarget.figG)
+    delete(globalDrawOnTarget.figG);
+end
 
 drawnow
 
