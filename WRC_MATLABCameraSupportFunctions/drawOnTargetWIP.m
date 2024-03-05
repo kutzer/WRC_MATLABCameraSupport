@@ -71,6 +71,10 @@ if nargin > 0
     im = varargin{1};
 end
 
+%% Check for previously existing figures
+figs = findobj('Type','Figure','Name','drawOnTargetWIP');
+close(figs);
+
 %% Create figure and axes
 fig = figure('Name','drawOnTargetWIP','Pointer','Cross');
 axs = axes('Parent',fig);
@@ -134,8 +138,11 @@ globalDrawOnTarget.hClosestPoint = plot(axs,nan,nan,':','Tag','ClosestPoint',...
 globalDrawOnTarget.DeletePoint = false;
 globalDrawOnTarget.ArrowPush = false;
 globalDrawOnTarget.EscapePush = false;
-globalDrawOnTarget.RadiusFrac = 0;      % Radius = (1/radfrac)*(1/2) distance between points
-globalDrawOnTarget.ArcLengthFrac = 1;   % Total points along arc length
+globalDrawOnTarget.RadiusFrac0 = 5;      % Radius = radfrac*(1/2) distance between points
+globalDrawOnTarget.RadiusFrac = globalDrawOnTarget.RadiusFrac0;
+globalDrawOnTarget.nArcPoints0 = 2;       % Total points along arc length
+globalDrawOnTarget.nArcPoints = globalDrawOnTarget.nArcPoints0;       % Total points along arc length
+globalDrawOnTarget.ArcPoints = [];
 globalDrawOnTarget.PointDistance = 0;
 
 %% Update z-limit to account for z-offset
@@ -389,8 +396,8 @@ switch callbackdata.EventName
                 globalDrawOnTarget.ArrowPush = true;
                 
                 % Increase arc length fraction
-                globalDrawOnTarget.ArcLengthFrac =...
-                    globalDrawOnTarget.ArcLengthFrac + 1;
+                globalDrawOnTarget.nArcPoints =...
+                    globalDrawOnTarget.nArcPoints + 1;
                 
                 % Update UI message
                 makeMessage(globalDrawOnTarget.figG);
@@ -406,8 +413,8 @@ switch callbackdata.EventName
                 globalDrawOnTarget.ArrowPush = true;
                 
                 % Decrease arc length fraction
-                globalDrawOnTarget.ArcLengthFrac =...
-                    globalDrawOnTarget.ArcLengthFrac - 1;
+                globalDrawOnTarget.nArcPoints =...
+                    globalDrawOnTarget.nArcPoints - 1;
                 
                 % Update UI message
                 makeMessage(globalDrawOnTarget.figG);
@@ -442,8 +449,8 @@ switch callbackdata.EventName
                 % Toggle escape push flag
                 globalDrawOnTarget.EscapePush = true;
                 
-                globalDrawOnTarget.RadiusFrac = 0;
-                globalDrawOnTarget.ArcLengthFrac = 1;
+                globalDrawOnTarget.RadiusFrac = globalDrawOnTarget.RadiusFrac0;
+                globalDrawOnTarget.nArcPoints = globalDrawOnTarget.nArcPoints0;
                 
                 % Update UI message
                 makeMessage(globalDrawOnTarget.figG);
@@ -497,8 +504,8 @@ switch callbackdata.EventName
 end
 
 % Impose limits on values
-if globalDrawOnTarget.ArcLengthFrac < 1
-    globalDrawOnTarget.ArcLengthFrac = 1;
+if globalDrawOnTarget.nArcPoints < 2
+    globalDrawOnTarget.nArcPoints = 2;
 end
 
 % Update plots
@@ -557,10 +564,29 @@ switch lower(src.SelectionType)
                 globalDrawOnTarget.xDraw(end+1,:) = xy;
                 globalDrawOnTarget.xMove(end+1,:) = nan(1,3);
                 
+                % Reset raduis
+                globalDrawOnTarget.RadiusFrac = ...
+                    sign(globalDrawOnTarget.RadiusFrac)*globalDrawOnTarget.RadiusFrac0;
+                % Reset arc points
+                globalDrawOnTarget.nArcPoints = globalDrawOnTarget.nArcPoints0;
+                
             case 'ContinuedDrawing'
                 % Add new drawing point
-                globalDrawOnTarget.xDraw(end+1,:) = xy;
-                globalDrawOnTarget.xMove(end+1,:) = nan(1,3);
+                %globalDrawOnTarget.xDraw(end+1,:) = xy;
+                globalDrawOnTarget.xDraw = [...
+                    globalDrawOnTarget.xDraw;...
+                    globalDrawOnTarget.ArcPoints];
+                
+                %globalDrawOnTarget.xMove(end+1,:) = nan(1,3);
+                globalDrawOnTarget.xMove = [...
+                    globalDrawOnTarget.xMove;...
+                    nan(size(globalDrawOnTarget.ArcPoints,1),3)];
+                
+                % Reset raduis
+                globalDrawOnTarget.RadiusFrac = ...
+                    sign(globalDrawOnTarget.RadiusFrac)*globalDrawOnTarget.RadiusFrac0;
+                % Reset arc points
+                globalDrawOnTarget.nArcPoints = globalDrawOnTarget.nArcPoints0;
                 
             case 'ExitDrawing'
                 % Exit triggered
@@ -738,11 +764,21 @@ deltaRadius = 0.05;
 switch callbackdata.EventName
     case 'WindowScrollWheel'
         if callbackdata.VerticalScrollCount < 0
-            % Scroll Up - Increase radius
+            % Scroll Up - Decrease radius
             %fprintf('Scroll Up\n');
             
             globalDrawOnTarget.RadiusFrac = ...
-                globalDrawOnTarget.RadiusFrac + deltaRadius;
+                globalDrawOnTarget.RadiusFrac - deltaRadius;
+            
+            % Bound radius fraction
+            if abs(globalDrawOnTarget.RadiusFrac) < 1
+                globalDrawOnTarget.RadiusFrac = sign(globalDrawOnTarget.RadiusFrac);
+            end
+            
+            % Allow direction change
+            if abs(globalDrawOnTarget.RadiusFrac) > globalDrawOnTarget.RadiusFrac0
+                globalDrawOnTarget.RadiusFrac = -globalDrawOnTarget.RadiusFrac;
+            end
             
             % Update UI message
             makeMessage(globalDrawOnTarget.figG);
@@ -750,11 +786,21 @@ switch callbackdata.EventName
         end
         
         if callbackdata.VerticalScrollCount > 0
-            % Scoll Down - Decrease radius
+            % Scoll Down - Increase radius
             %fprintf('Scroll Down\n');
             
             globalDrawOnTarget.RadiusFrac = ...
-                globalDrawOnTarget.RadiusFrac - deltaRadius;
+                globalDrawOnTarget.RadiusFrac + deltaRadius;
+            
+            % Bound radius fraction
+            if abs(globalDrawOnTarget.RadiusFrac) < 1
+                globalDrawOnTarget.RadiusFrac = sign(globalDrawOnTarget.RadiusFrac);
+            end
+            
+            % Allow direction change
+            if abs(globalDrawOnTarget.RadiusFrac) > globalDrawOnTarget.RadiusFrac0
+                globalDrawOnTarget.RadiusFrac = -globalDrawOnTarget.RadiusFrac;
+            end
             
             % Update UI message
             makeMessage(globalDrawOnTarget.figG);
@@ -795,25 +841,42 @@ if nargin < 1
     xy = boundAxsXY( axs.CurrentPoint(1,1:2) );
 end
 
-if numel(globalDrawOnTarget.xDraw) >= 2
-    globalDrawOnTarget.PointDistance = ...
-        norm(globalDrawOnTarget.xDraw(end,:) - xy);
+if numel(globalDrawOnTarget.xDraw) < 2
+    return
 end
+
+if any( isnan(globalDrawOnTarget.xDraw(end,:)) )
+    return
+end
+
+% Update distance
+globalDrawOnTarget.PointDistance = ...
+    norm(globalDrawOnTarget.xDraw(end,:) - xy(end,:));
+
+% Define arc connection
+X = [globalDrawOnTarget.xDraw(end,:); xy(end,:)].';
+r = globalDrawOnTarget.RadiusFrac*(globalDrawOnTarget.PointDistance/2);
+afit = fitArc2pntRad(X,r);
+% TODO - address non-real values
+xy = real( interpArc(afit,globalDrawOnTarget.nArcPoints) );
+xy(:,1) = [];
+globalDrawOnTarget.ArcPoints = xy(1:2,:).';
+xy = globalDrawOnTarget.ArcPoints;
 
 % Show connection between current position and
 %   previous drawing point
 set(globalDrawOnTarget.hDraw,'Visible','on',...
-    'XData',[globalDrawOnTarget.xDraw(:,1); xy(1)],...
-    'YData',[globalDrawOnTarget.xDraw(:,2); xy(2)]);
+    'XData',[globalDrawOnTarget.xDraw(:,1); xy(:,1)],...
+    'YData',[globalDrawOnTarget.xDraw(:,2); xy(:,2)]);
 
 % Find closest point
 [globalDrawOnTarget.xClosestPoint,globalDrawOnTarget.xLastDraw] = ...
-    findClosestPoint(globalDrawOnTarget.xDraw,xy);
+    findClosestPoint(globalDrawOnTarget.xDraw,xy(end,:));
 
 % Show closest point
 set(globalDrawOnTarget.hClosestPoint,'Visible','on',...
-    'XData',[xy(:,1); globalDrawOnTarget.xClosestPoint(:,1)],...
-    'YData',[xy(:,2); globalDrawOnTarget.xClosestPoint(:,2)]);
+    'XData',[xy(end,1); globalDrawOnTarget.xClosestPoint(:,1)],...
+    'YData',[xy(end,2); globalDrawOnTarget.xClosestPoint(:,2)]);
 
 % Update info
 makeMessage(globalDrawOnTarget.figG);
@@ -849,6 +912,9 @@ end
 function [xyClose,xyLastDraw] = findClosestPoint(xyAll,xy)
 % Find the closest point to the last continuous section within an array of
 % points. This ignores the last point in the array.
+
+% Use just the last point
+xy = xy(end,:);
 
 % Set default output(s)
 xyClose = nan(1,2);
@@ -905,24 +971,20 @@ function xy = boundAxsXY(xy)
 
 global globalDrawOnTarget
 
-x = xy(1);
-y = xy(2);
+x = xy(:,1);
+y = xy(:,2);
 
-if x < globalDrawOnTarget.xx(1)
-    x = globalDrawOnTarget.xx(1);
-end
+tf = x < globalDrawOnTarget.xx(1);
+x(tf) = globalDrawOnTarget.xx(1);
 
-if x > globalDrawOnTarget.xx(2)
-    x = globalDrawOnTarget.xx(2);
-end
+tf = x > globalDrawOnTarget.xx(2);
+x(tf) = globalDrawOnTarget.xx(2);
 
-if y < globalDrawOnTarget.yy(1)
-    y = globalDrawOnTarget.yy(1);
-end
+tf = y < globalDrawOnTarget.yy(1);
+y(tf) = globalDrawOnTarget.yy(1);
 
-if y > globalDrawOnTarget.yy(2)
-    y = globalDrawOnTarget.yy(2);
-end
+tf = y > globalDrawOnTarget.yy(2);
+y(tf) = globalDrawOnTarget.yy(2);
 
 xy = [x,y];
 
@@ -1061,10 +1123,10 @@ msg = sprintf([...
     ' ----- Down Arrow (press/release) -- [UNUSED, coming soon]\n',...
     '\n',...
     'Drawing Parameters:\n',...
-    ' --> Connection Radius = (%.2f)/(2*%.2f)\n',...
-    ' -->     Point Spacing = (Arc Length)/(%d)\n'],...
-    globalDrawOnTarget.PointDistance,globalDrawOnTarget.RadiusFrac,...
-    globalDrawOnTarget.ArcLengthFrac);
+    ' --> Connection Radius = (%.2f)(%.2f)/2\n',...
+    ' -->     Points on Arc = (Arc Length)/(%d)\n'],...
+    globalDrawOnTarget.RadiusFrac,globalDrawOnTarget.PointDistance,...
+    globalDrawOnTarget.nArcPoints);
 
 set(txt,'String',msg);
 drawnow
