@@ -1,8 +1,10 @@
-function X_t = drawOnTargetWIP(varargin)
+function [X_t,H_t2i] = drawOnTargetWIP(varargin)
 % DRAWONTARGETWIP creates a set of points associated with a target drawing.
 %   X_t = DRAWONTARGETWIP
 %
 %   X_t = DRAWONTARGETWIP(im)
+%
+%   [X_t,H_t2i] = DRAWONTARGETWIP(___)
 %
 %   Input(s)
 %       im  - [OPTIONAL] image to overlay on the target drawing
@@ -11,6 +13,9 @@ function X_t = drawOnTargetWIP(varargin)
 %       X_t - 3xN array containing x/y/z points associated with the
 %             drawing referenced to the "target" frame. Points are defined
 %             in millimeters.
+%     H_t2i - 4x4 array defining the affine transform relating the target 
+%             frame relative to the image frame. Note that the image frame
+%             in this context is the matrix frame of the image.
 %
 %   NOTE: The target drawing is available in WRC_MATLABCameraSupport
 %         repository:
@@ -59,6 +64,8 @@ function X_t = drawOnTargetWIP(varargin)
 %   M. Kutzer, 26Feb2024, USNA
 
 % Updates
+%   08Mar2024 - Updated to output transformation relating target and image
+%               frames
 
 %% Set globals
 global globalDrawOnTarget
@@ -149,29 +156,39 @@ globalDrawOnTarget.PointDistance = 0;
 zlim(axs,[-1,1] + [0,globalDrawOnTarget.zOffset]);
 
 %% Overlay image
+% Initialize values
+H_c2p = eye(4);
+H_s2c = eye(4);
+H_i2s = eye(4);
+
+% Overlay image
 if ~isempty(im)
     % Define image size
     x_im = size(im,2);
     y_im = size(im,1);
-    
+
     % Define scale
     scale = min([xx(2)/x_im,yy(2)/y_im]);
-    
-    % Define "image" relative to "corner" frame
-    H_c2a = Tz(-0.1)*Rx(pi)*Tx(xx(2)/2)*Ty(-yy(2)/2);
-    h_c2a = triad('Parent',axs,'Scale',20,'Matrix',H_c2a,'LineWidth',2);
+
+    % Define "image" relative to "paper" frame
+    % NOTE: The paper and the axes frames are currently the same
+    % -> "Corner" relative to "paper"
+    H_c2p = Tz(-0.1)*Rx(pi)*Tx(xx(2)/2)*Ty(-yy(2)/2);
+    h_c2p = triad('Parent',axs,'Scale',20,'Matrix',H_c2p,'LineWidth',2);
+    % -> "Scale" relative to "corner"
     H_s2c = Tx( -(x_im*scale)/2 )*Ty( -(y_im*scale)/2 );
-    h_s2c = triad('Parent',h_c2a,'Scale',30,'Matrix',H_s2c);
+    h_s2c = triad('Parent',h_c2p,'Scale',30,'Matrix',H_s2c);
+    % -> "Image" relative to "scale"
     H_i2s = Sx(scale)*Sy(scale);
     h_i2s = triad('Parent',h_s2c,'Scale',max([x_im,y_im])/2,'Matrix',H_i2s);
-    
+
     % Show image
     img = imshow(im,'Parent',axs);
     set(img,'Parent',h_i2s,'AlphaData',0.5);
     set(axs,'Visible','on','YDir','Normal');
-    
+
     % Hide triads
-    hideTriad(h_c2a);
+    hideTriad(h_c2p);
     hideTriad(h_s2c);
     hideTriad(h_i2s);
 end
@@ -187,6 +204,9 @@ X_t = [...
 % -> The paper frame is located in the lower left of the page assuming a
 %    landscape orientation
 H_t2p = Tx(25)*Ty(25);
+
+%% Define optional output H_t2i
+H_t2i = H_i2s^(-1)*H_s2c^(-1)*H_c2p^(-1)*H_t2p;
 
 %% Render target dots
 n = 100;
