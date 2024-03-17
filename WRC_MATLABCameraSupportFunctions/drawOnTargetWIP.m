@@ -304,7 +304,8 @@ X_t = invSE(H_t2p)*X_p;
 X_t(end,:) = [];
 
 %% Save default points
-save([globalDrawOnTarget.fname,'.mat'],'X_t');
+save([globalDrawOnTarget.fname,'.mat'],...
+    'X_t','H_c2p','H_s2c','H_i2s','H_t2p','H_t2i');
 saveas(fig,[globalDrawOnTarget.fname,'.fig'],'fig');
 saveas(fig,[globalDrawOnTarget.fname,'.png'],'png');
 
