@@ -62,7 +62,7 @@ function varargout = getCalibrationImages(prv,varargin)
 %   06Feb2020 - Updated to also return image names.
 %   08Mar2021 - Updated to include fixed time interval option.
 %   15Nov2023 - Updated documentation
-%   21Mar2024 - Updated documentation
+%   21Mar2024 - Updated documentation and fixed multi-preview support
 
 %% Parse and check inputs
 % Check number of inputs
