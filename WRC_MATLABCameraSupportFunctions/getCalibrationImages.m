@@ -44,8 +44,8 @@ function varargout = getCalibrationImages(prv,varargin)
 %       dt          - [OPTIONAL] 
 %
 %   Output(s)
-%       imageFolder - 
-%       imageNames  - 
+%       imageFolder - character arracy specifying image folder path
+%       imageNames  - cell array defining image names
 %
 %   See also initCamera cameraCalibrator
 %
@@ -62,6 +62,7 @@ function varargout = getCalibrationImages(prv,varargin)
 %   06Feb2020 - Updated to also return image names.
 %   08Mar2021 - Updated to include fixed time interval option.
 %   15Nov2023 - Updated documentation
+%   21Mar2024 - Updated documentation
 
 %% Parse and check inputs
 % Check number of inputs
@@ -94,6 +95,7 @@ if ~goodPrv
         ' -> [~,prv] = initWebcam;']);
 else
     % Get preview axis
+    %{
     mom = prv;
     isAxes = false;
     while ~isAxes
@@ -115,10 +117,14 @@ else
                 prvFig = mom;
         end
     end
-    set(prvFig,'Units','Normalized');
-    pp = get(prvFig,'Position');
-    ppNew = [0,1-pp(4)-0.025,pp(3),pp(4)];
-    set(prvFig,'Position',ppNew);
+    %}
+    for i = 1:numel(prv)
+        prvFig = ancestor(prv(i),'Figure');
+        set(prvFig,'Units','Normalized');
+        pp = get(prvFig,'Position');
+        ppNew = [0,1-pp(4)-0.025,pp(3),pp(4)];
+        set(prvFig,'Position',ppNew);
+    end
 end
 
 % Parse inputs
