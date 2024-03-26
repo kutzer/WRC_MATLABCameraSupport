@@ -1,9 +1,9 @@
 function [objs,im] = showCheckerboardOnPreview(prv,im,varargin)
-% SHOWCHECKERBOARDINPREVIEW overlays a patch object on a preview showing
+% SHOWCHECKERBOARDONPREVIEW overlays a patch object on a preview showing
 % where a checkerboard has been detected within an image.
-%   [objs,im] = showCheckerboardInPreview(prv,im)
-%   ___ = showCheckerboardInPreview(prv)
-%   ___ = showCheckerboardInPreview(___,Name,Value)
+%   [objs,im] = showCheckerboardOnPreview(prv)
+%   ___ = showCheckerboardOnPreview(prv,im)
+%   ___ = showCheckerboardOnPreview(___,Name,Value)
 %
 %   Input(s)
 %       prv - preview image object (see initCamera.m)
@@ -20,6 +20,9 @@ function [objs,im] = showCheckerboardOnPreview(prv,im,varargin)
 %   See also clearPreview initCamera
 %
 %   M. Kutzer, 15Nov2023, USNA
+
+% Updates
+%   26Mar2024 - Updated documentation errors
 
 %% Check input(s)
 % TODO - check inputs
