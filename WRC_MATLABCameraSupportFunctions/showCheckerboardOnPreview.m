@@ -23,6 +23,7 @@ function [objs,im] = showCheckerboardOnPreview(prv,im,varargin)
 
 % Updates
 %   26Mar2024 - Updated documentation errors
+%   17Apr2024 - Updated to account for no visible checkerboard
 
 %% Check input(s)
 % TODO - check inputs
@@ -60,6 +61,11 @@ else
 end
 warning('on','vision:calibrate:boardShouldBeAsymmetric');
 
+% Check for no visible checkerboard
+if isempty(imagePoints)
+    % No image is available
+    return
+end
 % Remove nan values from image points
 tf = isnan(imagePoints);
 tf = tf(:,1) | tf(:,2);
