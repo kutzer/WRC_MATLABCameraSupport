@@ -18,6 +18,8 @@ function h_p2c = plotTicTacToePiece(axs,tagID)
 %
 %   M. Kutzer, 22Apr2024, USNA
 
+debug = false;
+
 %% Check input(s)
 narginchk(1,2);
 
@@ -97,8 +99,11 @@ for i = 1:numel(tagID)
     
     % Show piece frame
     showTriad(h_p2c(i));
-    setTriad('AxisLabels',lbls,'LineWidth',1.4);
+    setTriad(h_p2c(i),'AxisLabels',lbls,'LineWidth',1.4);
     
     % Show piece
     ptcPieces(i) = copyobj(ptc,h_p2c(i));
+    set(ptcPieces(i),'FaceColor',color,'EdgeColor',color,'FaceAlpha',0.6);
 end
+
+delete(ptc);
