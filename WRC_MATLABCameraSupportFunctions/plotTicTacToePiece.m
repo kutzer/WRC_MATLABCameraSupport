@@ -19,6 +19,7 @@ function h_p2c = plotTicTacToePiece(axs,tagID)
 %   M. Kutzer, 22Apr2024, USNA
 
 debug = false;
+showAxisLabels = false;
 
 %% Check input(s)
 narginchk(1,2);
@@ -99,7 +100,11 @@ for i = 1:numel(tagID)
     
     % Show piece frame
     showTriad(h_p2c(i));
-    setTriad(h_p2c(i),'AxisLabels',lbls,'LineWidth',1.4);
+    if showAxisLabels
+        setTriad(h_p2c(i),'AxisLabels',lbls,'LineWidth',1.4);
+    else
+        setTriad(h_p2c(i),'LineWidth',1.4);
+    end
     
     % Show piece
     ptcPieces(i) = copyobj(ptc,h_p2c(i));
@@ -107,3 +112,4 @@ for i = 1:numel(tagID)
 end
 
 delete(ptc);
+drawnow;
