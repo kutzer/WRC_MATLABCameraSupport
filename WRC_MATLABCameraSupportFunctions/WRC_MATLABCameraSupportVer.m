@@ -32,11 +32,13 @@ function varargout = WRC_MATLABCameraSupportVer
 %               settings.
 %   17Apr2024 - Updated to account for no visible checkerboard in 
 %               showCheckerboardOnPreview
+%   23Apr2024 - Updated adjustCamera to account for non-variable, bounded 
+%               property values
 
 A.Name = 'WRC MATLAB Camera Support';
-A.Version = '1.2.1';
+A.Version = '1.2.2';
 A.Release = '(R2019b)';
-A.Date = '17-Apr-2024';
+A.Date = '23-Apr-2024';
 A.URLVer = 1;
 
 msg{1} = sprintf('MATLAB %s Version: %s %s',A.Name, A.Version, A.Release);
