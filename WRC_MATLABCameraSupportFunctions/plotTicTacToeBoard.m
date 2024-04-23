@@ -131,3 +131,4 @@ for i = 1:numel(H_s2a)
 end
 
 delete(ptcSpace);
+drawnow;
