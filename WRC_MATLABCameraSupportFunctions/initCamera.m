@@ -1,6 +1,43 @@
-function [cam,varargout] = initCamera
+function [cam,varargout] = initCamera(DeviceName,DeviceFormat)
 % INITCAMERA initializes a video input object and, if applicable, opens a
 % preview.
+%                [cam] = initCamera
+%            [cam,prv] = initCamera
+%   [cam,prv,pHandles] = initCamera
+%                  ___ = initCamera(DeviceName,DeviceFormats)
+%
+%   Input(s)
+%         DeviceName - [OPTIONAL] character array specifying specific 
+%                      camera device.
+%       DeviceFormat - [OPTIONAL] character array specifying camera format
+%
+%   Output(s)
+%       cam - MATLAB camera object
+%       prv - MATLAB preview object
+%       pHandles - structured array containing all handles contained in the
+%                  preview figure. The structured array pHandles contains 
+%                  the following:
+%           pHandles.Figure - Figure handle that contains the preview
+%           pHandles.Axes   - Axes handle that contains the preview
+%           pHandles.Image  - Image handle that *is* the preview
+%           pHandles.Text.*
+%               .TriggerInfo     - Text handle that contains trigger info
+%               .FramesPerSecond - Text handle that contains frames per 
+%                                  second
+%               .Resolution      - Text handle that contains resolution 
+%                                  info
+%               .Time            - Text handle that contains the time stamp
+%
+%   NOTE: This requires an installed version of the "Image Acquisition
+%       Toolbox" and the "Image Acquisition Toolbox Support Package for OS
+%       Generic Video Interface"
+%       >> supportPackageInstaller
+%           -> select "Install from Internet"
+%           -> select “OS Generic Video Interface”
+%           -> login to mathworks using email and password
+%           -> Install
+%
+%   Usage Note(s)
 %
 %   [cam,prv] = INITCAMERA returns both the camera object and the preview
 %   handle. Note that "prv" can be used to get images faster than
@@ -22,15 +59,6 @@ function [cam,varargout] = initCamera
 %   cam = INITCAMERA returns the camera object. This is required for using
 %   getsnapshot.m:
 %       -> im = getsnapshot(cam);
-%
-%   NOTE: This requires an installed version of the "Image Acquisition
-%       Toolbox" and the "Image Acquisition Toolbox Support Package for OS
-%       Generic Video Interface"
-%       >> supportPackageInstaller
-%           -> select "Install from Internet"
-%           -> select “OS Generic Video Interface”
-%           -> login to mathworks using email and password
-%           -> Install
 %
 %   Example:
 %       % Initialize camera
@@ -68,6 +96,8 @@ function [cam,varargout] = initCamera
 %   14Apr2022 - Removed changing default exposure mode
 %   22Apr2022 - Added example
 %   22Apr2022 - Removed changing default frame rate
+%   23Apr2024 - Added device and format selection
+%   23Apr2024 - Updated documentation
 
 %% Declare persistent variable to declare new camera names
 % TODO - remove persistent and replace with device selection
@@ -113,20 +143,46 @@ if isempty(devices.DeviceIDs)
     end
 end
 
+% Get list of cameras
 n = numel(devices.DeviceIDs);
-if n > 1
-    for i = 1:n
-        camList{i} = devices.DeviceInfo(i).DeviceName;
+camList = cell(1,n);
+for i = 1:n
+    camList{i} = devices.DeviceInfo(i).DeviceName;
+end
+drawnow; % Eliminate "Event Dispatch Thread (EDT)" warning
+
+% Find user-specified camera
+camIdx = [];
+if nargin >= 1
+    tf = matches(lower(camList),lower(DeviceName));
+    switch nnz(tf)
+        case 0
+            fprintf('The camera "%s" does not appear in the device list:\n',DeviceName);
+            for i = 1:numel(camList)
+                fprintf('\t"%s"\n',camList{i});
+            end
+        case 1
+            camIdx = find(tf,1,'first');
+        otherwise
+            fprintf('The camera "%s" appears %d times in the device list:\n',DeviceName,nnz(tf));
+            for i = 1:numel(camList)
+                fprintf('\t"%s"\n',camList{i});
+            end
     end
-    drawnow; % Eliminate "Event Dispatch Thread (EDT)" warning
-    [camIdx,OK] = listdlg('PromptString','Select camera:',...
-        'SelectionMode','single',...
-        'ListString',camList);
-    if ~OK
-        error('No camera selected.');
+end
+
+% Prompt user to specify camera
+if isempty(camIdx)
+    if n > 1
+        [camIdx,OK] = listdlg('PromptString','Select camera:',...
+            'SelectionMode','single',...
+            'ListString',camList);
+        if ~OK
+            error('No camera selected.');
+        end
+    else
+        camIdx = 1;
     end
-else
-    camIdx = 1;
 end
 
 %% Check if the selected device is already initialized and in use
@@ -168,24 +224,55 @@ end
 %% Check for available formats
 % Get available formats
 formatList = devices.DeviceInfo(camIdx).SupportedFormats;
-% Define "preferred" format
-formatPrefer = 'YUY2_640x480';
 % Define default format
 formatDefault = devices.DeviceInfo(camIdx).DefaultFormat;
 
 % Allow user to select format
 % -> Define default value in dialog
+%{
+% ------ Legacy ------
+% Define "preferred" format
+formatPrefer = 'YUY2_640x480';
 formatIDX = find( contains(formatList,formatPrefer) );
 if isempty(formatIDX)
     formatIDX = find( contains(formatList,formatDefault) );
 end
+% --------------------
+%}
+formatIDX = find( contains(formatList,formatDefault) );
+
 % -> Prompt user to select format
 drawnow; % Eliminate "Event Dispatch Thread (EDT)" warning 
-[formatIDX,OK] = listdlg('PromptString','Select format:',...
-    'SelectionMode','single',...
-    'ListString',formatList,'InitialValue',formatIDX);
-if ~OK
-    error('No format selected.');
+
+% Find user-specified format
+formatIDX_in = [];
+if nargin >= 2
+    tf = matches(lower(formatList),lower(DeviceFormat));
+    switch nnz(tf)
+        case 0
+            fprintf('The camera "%s" does not to support the "%s" format. Supported formats:\n',camList{camIdx},DeviceFormat);
+            for i = 1:numel(formatList)
+                fprintf('\t"%s"\n',formatList{i});
+            end
+        case 1
+            formatIDX_in = find(tf,1,'first');
+        otherwise
+            fprintf('The camera "%s" has %d matching formats in the supported format list:\n',DeviceName,nnz(tf));
+            for i = 1:numel(formatList)
+                fprintf('\t"%s"\n',formatList{i});
+            end
+    end
+end
+
+if isempty(formatIDX_in)
+    [formatIDX,OK] = listdlg('PromptString','Select format:',...
+        'SelectionMode','single',...
+        'ListString',formatList,'InitialValue',formatIDX);
+    if ~OK
+        error('No format selected.');
+    end
+else
+    formatIDX = formatIDX_in;
 end
 
 %% Create video input object
