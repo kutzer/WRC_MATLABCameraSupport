@@ -67,7 +67,7 @@ function varargout = adjustCamera(cam,varargin)
 % TODO - avoid use of global variable for sharing camera settings
 global adjustCamera_camSettings
 
-debugON = true;
+debugON = false;
 
 %% Check input(s)
 narginchk(1,3);
@@ -422,10 +422,10 @@ for k = 1:numel(uiC)
             try
                 src_obj.(camProp) = setVal;
             catch ME
-                fprintf('\n');
-                fprintf('Error in src_obj.%s = setVal\n',camProp);
-                assignin('base','src_obj',src_obj);
-                assignin('base','setVal',setVal);
+                % Debug
+                fprintf('[Error in src_obj.%s = setVal]\n',camProp);
+                assignin('base','fcnDebug.src_obj',src_obj);
+                assignin('base','fcnDebug.setVal',setVal);
             end
         case 'edit'
             switch lower( prop_info{k}.Type )
