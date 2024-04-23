@@ -34,9 +34,10 @@ function varargout = WRC_MATLABCameraSupportVer
 %               showCheckerboardOnPreview
 %   23Apr2024 - Updated adjustCamera to account for non-variable, bounded 
 %               property values
+%   23Apr2024 - Updated to enable inputs for initCamera
 
 A.Name = 'WRC MATLAB Camera Support';
-A.Version = '1.2.2';
+A.Version = '1.2.3';
 A.Release = '(R2019b)';
 A.Date = '23-Apr-2024';
 A.URLVer = 1;
