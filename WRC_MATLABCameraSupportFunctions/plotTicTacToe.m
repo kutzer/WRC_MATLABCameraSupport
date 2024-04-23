@@ -47,21 +47,36 @@ end
 % TODO - check remaining inputs
 
 %% Create visualization
+camScale = 80;
 if showRobot
+    % Adjust OpenGL to software
+    opengl software
+    
+    % Show robot
     sim = URsim;
     sim.Initialize('UR3');
     for i = 1:6
         hideTriad(sim.(sprintf('hFrame%d',i)));
     end
     hideTriad(sim.hFrameT);
+    sim.Home;
     
-    camScale = 80;
+    % Update renderer to avoid crashing
+    set(sim.Figure,...
+        'RendererMode','manual',...
+        'Renderer','opengl',...
+        'GraphicsSmoothing','off');
+    drawnow
+    
+    % Show camera
     lbls = {'x_c','y_c','z_c'};
     h_c2o = triad('Parent',sim.hFrame0,'Matrix',H_c2o,...
         'AxisLabels',lbls,'Scale',camScale);
-    
     c_Vis = plotCameraTransform(h_c2o,'Size',camScale/2,...
             'Color',[0,0,1]);
+        
+    % Define common variable name
+    fig = sim.Figure;
 else
     fig = figure('Name','plotTicTacToe.m');
     axs = axes('Parent',fig,'NextPlot','Add','DataAspectRatio',[1 1 1]);
@@ -69,8 +84,8 @@ else
     
     H_a2o = Rx(pi);
     H_c2o = H_a2o*invSE(H_a2c);
- 
-    camScale = 80;
+    
+    % Show camera
     lbls = {'x_c','y_c','z_c'};
     h_c2o = triad('Parent',axs,'Matrix',H_c2o,...
         'AxisLabels',lbls,'Scale',camScale);
@@ -78,28 +93,32 @@ else
     c_Vis = plotCameraTransform(h_c2o,'Size',camScale/2,...
             'Color',[0,0,1]);
 end
+drawnow
 
 %% Plot board
 h_a2c = plotTicTacToeBoard(h_c2o);
 set(h_a2c,'Matrix',H_a2c);
+drawnow
 
 %% Plot pieces
 h_ab2c = plotTicTacToePiece(h_c2o,451:455);
 h_ar2c = plotTicTacToePiece(h_c2o,461:465);
-
 set(h_ab2c,'Visible','off');
 set(h_ar2c,'Visible','off');
+drawnow
 
 %% Update pieces
 for i = 1:numel(H_ab2c)
-    if ~isempty(H_ab2c)
+    if ~isempty(H_ab2c{i})
         set(h_ab2c(i),'Matrix',H_ab2c{i},'Visible','on');
+        drawnow
     end
 end
 
 for i = 1:numel(H_ar2c)
-    if ~isempty(H_ar2c)
+    if ~isempty(H_ar2c{i})
         set(h_ar2c(i),'Matrix',H_ar2c{i},'Visible','on');
+        drawnow
     end
 end
         
