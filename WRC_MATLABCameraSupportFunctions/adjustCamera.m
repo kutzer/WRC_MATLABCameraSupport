@@ -62,11 +62,12 @@ function varargout = adjustCamera(cam,varargin)
 %   30Nov2023 - Added structured array output for camera settings
 %   30Nov2023 - Added user settings input option
 %   30Nov2023 - Added bypass GUI option
+%   23Apr2024 - Account for non-variable, bounded property value(s)
 
 % TODO - avoid use of global variable for sharing camera settings
 global adjustCamera_camSettings
 
-debugON = false;
+debugON = true;
 
 %% Check input(s)
 narginchk(1,3);
@@ -168,9 +169,14 @@ for k = 1:n
         case 'integer'
             switch lower( prop_info{k}.Constraint )
                 case 'bounded'
-                    val = ...
-                        double(prop_vals{k} - prop_info{k}.ConstraintValue(1))./...
-                        double(diff(prop_info{k}.ConstraintValue));
+                    % Account for non-variable, bounded property value
+                    if double(diff(prop_info{k}.ConstraintValue)) ~= 0
+                        val = ...
+                            double(prop_vals{k} - prop_info{k}.ConstraintValue(1))./...
+                            double(diff(prop_info{k}.ConstraintValue));
+                    else
+                        val = mean(prop_vals{k});
+                    end
                     uiC(k) =  uicontrol(uiP(k),'Style','Slider',...
                         'Units','Normalized','Position',[0.1,0.15,0.8,0.7],...
                         'Tag',prop_names{k},'Value',val);
@@ -413,7 +419,14 @@ for k = 1:numel(uiC)
             val = double(setVal - prop_info{k}.ConstraintValue(1))/...
                 double(diff(prop_info{k}.ConstraintValue));
             set(uiC(k),'Value',val);
-            src_obj.(camProp) = setVal;
+            try
+                src_obj.(camProp) = setVal;
+            catch ME
+                fprintf('\n');
+                fprintf('Error in src_obj.%s = setVal\n',camProp);
+                assignin('base','src_obj',src_obj);
+                assignin('base','setVal',setVal);
+            end
         case 'edit'
             switch lower( prop_info{k}.Type )
                 case 'integer'
