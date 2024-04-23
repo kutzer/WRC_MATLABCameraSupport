@@ -422,7 +422,7 @@ for k = 1:numel(uiC)
             try
                 src_obj.(camProp) = setVal;
             catch ME
-                fprintf('[Error in src_obj.%s = setVal]\n',camProp);
+                fprintf('[Error in src_obj.%s = setVal], setVal = ',camProp);
                 % Debug
                 fcnDebug.src_obj = src_obj;
                 fcnDebug.setVal = setVal;
@@ -435,7 +435,6 @@ for k = 1:numel(uiC)
                 case 'string'
                     val = setVal;
             end
-            
             set(uiC(k),'String',val);
             src_obj.(camProp) = setVal;
         case 'popupmenu'
