@@ -49,9 +49,12 @@ end
 %% Create visualization
 camScale = 80;
 if showRobot
-    % Adjust OpenGL to software
-    opengl software
-    
+
+    % ------ CRASHING WINDOW DEBUG ----------------------------------------
+    % - Adjust OpenGL to software to avoid crashing
+    %opengl software
+    % ---------------------------------------------------------------------
+
     % Show robot
     sim = URsim;
     sim.Initialize('UR3');
@@ -61,11 +64,13 @@ if showRobot
     hideTriad(sim.hFrameT);
     sim.Home;
     
-    % Update renderer to avoid crashing
-    set(sim.Figure,...
-        'RendererMode','manual',...
-        'Renderer','opengl',...
-        'GraphicsSmoothing','off');
+    % ------ CRASHING WINDOW DEBUG ----------------------------------------
+    % - Update renderer to avoid crashing
+    %set(sim.Figure,...
+    %    'RendererMode','manual',...
+    %    'Renderer','opengl',...
+    %    'GraphicsSmoothing','off');
+    % ---------------------------------------------------------------------
     drawnow
     
     % Show camera
