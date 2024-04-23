@@ -14,6 +14,7 @@ function h_a2c = plotTicTacToeBoard(axs)
 %   M. Kutzer, 22Apr2024, USNA
 
 debug = false;
+showAxisLabels = true;
 
 %% Check input(s)
 narginchk(0,1);
@@ -38,6 +39,9 @@ if debug
 end
 
 %% Create tic tac toe board visualization
+% Define tag offset to improve visualization
+tagOffset = 0.05;
+
 % Define board dimensions
 l = 233; % mm
 w = 195; % mm
@@ -63,7 +67,7 @@ if debug
 end
 
 % Reference board corners for tag a450
-H_t2a = Tz(h+0.01)*Ty(20)*Tx(-(w-150)/2)*Rx(pi);
+H_t2a = Tz(h+tagOffset)*Ty(20)*Tx(-(w-150)/2)*Rx(pi);
 X_a = H_t2a*X_t;
 
 % Define faces
@@ -120,12 +124,17 @@ ptcSpace = patch(axs,'Vertices',verts,'Faces',1:4,'EdgeColor','k','FaceColor','n
 
 for i = 1:numel(H_s2a)
     % Define space frame
-    lbls{1} = sprintf('x_{s_{%d}}',i);
-    lbls{2} = sprintf('y_{s_{%d}}',i);
-    lbls{3} = sprintf('z_{s_{%d}}',i);
-    h_s2a(i) = triad('Parent',h_a2c,'Matrix',H_s2a{i},'Scale',1.2*tagSize/2,...
-        'LineWidth',1.4,'AxisLabels',lbls);
-    
+    if showAxisLabels
+        lbls{1} = sprintf('x_{s_{%d}}',i);
+        lbls{2} = sprintf('y_{s_{%d}}',i);
+        lbls{3} = sprintf('z_{s_{%d}}',i);
+        h_s2a(i) = triad('Parent',h_a2c,'Matrix',H_s2a{i},'Scale',1.2*tagSize/2,...
+            'LineWidth',1.4,'AxisLabels',lbls);
+    else
+        h_s2a(i) = triad('Parent',h_a2c,'Matrix',H_s2a{i},'Scale',1.2*tagSize/2,...
+            'LineWidth',1.4);
+    end
+
     % Show space
     ptcSpaces(i) = copyobj(ptcSpace,h_s2a(i));
 end
