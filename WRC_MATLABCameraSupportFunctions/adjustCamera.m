@@ -422,10 +422,11 @@ for k = 1:numel(uiC)
             try
                 src_obj.(camProp) = setVal;
             catch ME
-                % Debug
                 fprintf('[Error in src_obj.%s = setVal]\n',camProp);
-                assignin('base','fcnDebug.src_obj',src_obj);
-                assignin('base','fcnDebug.setVal',setVal);
+                % Debug
+                fcnDebug.src_obj = src_obj;
+                fcnDebug.setVal = setVal;
+                assignin('base','fcnDebug',fcnDebug);
             end
         case 'edit'
             switch lower( prop_info{k}.Type )
