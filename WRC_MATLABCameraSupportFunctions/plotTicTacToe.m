@@ -79,9 +79,6 @@ if showRobot
         'AxisLabels',lbls,'Scale',camScale);
     c_Vis = plotCameraTransform(h_c2o,'Size',camScale/2,...
             'Color',[0,0,1]);
-        
-    % Define common variable name
-    fig = sim.Figure;
 else
     fig = figure('Name','plotTicTacToe.m');
     axs = axes('Parent',fig,'NextPlot','Add','DataAspectRatio',[1 1 1]);
