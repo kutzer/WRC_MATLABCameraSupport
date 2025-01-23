@@ -63,15 +63,19 @@ function varargout = getCalibrationImages(prv,varargin)
 %   08Mar2021 - Updated to include fixed time interval option.
 %   15Nov2023 - Updated documentation
 %   21Mar2024 - Updated documentation and fixed multi-preview support
+%   23Jan2025 - Updated to add showCheckerboardOnPreview and clearPreview
 
 %% Parse and check inputs
 % Check number of inputs
 narginchk(1,5);
+
 % Set default values
 imageName = [];
 imageFolder = [];
 n = [];
 dt = [];
+tfShowCheckerboard = true;
+
 % Check videoinput object
 goodPrv = true;
 for i = 1:numel(prv)
@@ -95,29 +99,6 @@ if ~goodPrv
         ' -> [~,prv] = initWebcam;']);
 else
     % Get preview axis
-    %{
-    mom = prv;
-    isAxes = false;
-    while ~isAxes
-        mom = get(mom,'Parent');
-        switch lower( get(mom,'Type') )
-            case 'axes'
-                isAxes = true;
-                prvAxes = mom;
-        end
-    end
-    % Get preview figure
-    mom = prvAxes;
-    isFigure = false;
-    while ~isFigure
-        mom = get(mom,'Parent');
-        switch lower( get(mom,'Type') )
-            case 'figure'
-                isFigure = true;
-                prvFig = mom;
-        end
-    end
-    %}
     for i = 1:numel(prv)
         prvFig = ancestor(prv(i),'Figure');
         set(prvFig,'Units','Normalized');
@@ -161,6 +142,7 @@ if isempty(imageFolder)
         dateStr,round((now-floor(now))*1e6));
     fprintf('Using default Image Folder: \n -> "%s"\n',imageFolder);
 end
+
 % Check inputs
 if ~isnumeric(n) || numel(n) ~= 1
     error('The number of images must be specified as a single numeric value.');
@@ -178,9 +160,7 @@ if ~isfolder(imageFolder)
     mkdir(imageFolder);
 end
 
-%% Get images
-fmt = 'png';
-
+%% Initialize timed image capture
 if ~isempty(dt)
     fig = figure('Name','Grab Image','MenuBar','none','NumberTitle','off',...
         'Resize','off','Scrollable','off','ToolBar','none',...
@@ -189,18 +169,24 @@ if ~isempty(dt)
     axs = axes('Parent',fig,'Units','Normalized','Visible','off',...
         'Position',[0,0,1,1],'XLim',[-1,1],'YLim',[-1,1]);
     
-    msg{1} = sprintf('Place checkerboard in camera FOV (%2d of %2d);',i,n);
+    msg{1} = sprintf('Place checkerboard in camera FOV (%2d of %2d);',0,n);
     msg{2} = sprintf('Taking snapshot in %2d',ceil(dt));
     txt = text(0,0,msg,'Parent',axs,'HorizontalAlignment','Center',...
         'VerticalAlignment','Middle','FontSize',26);
 end
 
+%% Get images
+fmt = 'png';
 for i = 1:n
     % Status update
     fprintf('Getting calibration image %d of %d...',i,n);
     
+    % Bring preview to the front
     figure(prvFig);
+
+    % Prompt user
     if isempty(dt)
+        % -> Manual image capture
         if n > 1
             msg = sprintf('Place checkerboard in camera FOV (%d of %d)...[Enter to Continue]',i,n);
             % Wait for user
@@ -211,6 +197,7 @@ for i = 1:n
             fprintf('<SINGLE IMAGE, UIWAIT>...');
         end
     else
+        % -> Timed image capture
         t = 0;
         t0 = tic;
         while t < dt
@@ -231,12 +218,23 @@ for i = 1:n
     for j = 1:numel(prv)
         im{j} = get(prv(j),'CData');
     end
+
+    % Show checkerboard on preview(s)
+    if tfShowCheckerboard
+        for j = 1:numel(im)
+            showCheckerboardOnPreview(prv(j),im{j});
+        end
+    end
+    drawnow
+
+    % Update timed user prompt
     if ~isempty(dt)
         msg{1} = sprintf('Image(s) Captured!');
         msg{2} = sprintf('Saving Image(s)...');
         set(txt,'String',msg);
         drawnow
     end
+
     % Define image filename(s)
     if numel(im) == 1
         fname{1} = sprintf('%s%03d.%s',imageName,i,fmt);
@@ -245,6 +243,7 @@ for i = 1:n
             fname{j} = sprintf('cam%02d_%s%03d.%s',j,imageName,i,fmt);
         end
     end
+
     % Save image(s)
     for j = 1:numel(im)
         imwrite(im{j},fullfile(imageFolder,fname{j}),fmt);
@@ -254,8 +253,16 @@ for i = 1:n
     fprintf('[Complete]\n');
 end
 
+%% Delete status figure
 if ~isempty(dt)
     delete(fig);
+end
+
+%% Clear preview
+if tfShowCheckerboard
+    for j = 1:numel(prv)
+        clearPreview(prv(j));
+    end
 end
 
 %% Package output(s)
