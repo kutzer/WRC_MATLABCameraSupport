@@ -141,7 +141,7 @@ end
 % differentiate between calibration sessions)
 %   Example Image Name: 'Im_20210419_092301_001.png'
 %       -> The "base" image name is 'Im_20210419_092301'
-dstr = datestr(now,'yyyymmdd_HHMMSS');
+dstr = datetime('now','Format','yyyyMMdd_HHmmss');
 bname_h = sprintf('Im_h_%s',dstr);  % Images of handheld checkerboard
 bname_f = sprintf('Im_f_%s',dstr);  % Images of fixed checkerboard
 
