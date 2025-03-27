@@ -4,7 +4,7 @@ function [cam,varargout] = initCamera(DeviceName,DeviceFormat)
 %                [cam] = initCamera
 %            [cam,prv] = initCamera
 %   [cam,prv,pHandles] = initCamera
-%                  ___ = initCamera(DeviceName,DeviceFormats)
+%                  ___ = initCamera(DeviceName,DeviceFormat)
 %
 %   Input(s)
 %         DeviceName - [OPTIONAL] character array specifying specific 
