@@ -62,9 +62,9 @@ function [cam,varargout] = initCamera(DeviceName,DeviceFormat)
 %
 %   Example:
 %       % Initialize camera
-%       [init,cam] = initCamera;
+%       [cam,prv] = initCamera;
 %       % Adjust camera parameters
-%       adjustCamera(cam);
+%       cSettings = adjustCamera(cam);
 %
 %   Recommended steps to adjust an Imaging Source DFK 23U618 with 
 %   mechanical aperture lens using the adjustCamera GUI:
@@ -98,6 +98,7 @@ function [cam,varargout] = initCamera(DeviceName,DeviceFormat)
 %   22Apr2022 - Removed changing default frame rate
 %   23Apr2024 - Added device and format selection
 %   23Apr2024 - Updated documentation
+%   27Mar2025 - Updated documentation
 
 %% Declare persistent variable to declare new camera names
 % TODO - remove persistent and replace with device selection
