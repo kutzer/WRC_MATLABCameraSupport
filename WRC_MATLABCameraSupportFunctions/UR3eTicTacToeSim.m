@@ -44,6 +44,35 @@ classdef UR3eTicTacToeSim < TicTacToeSim % Handle
         end
 
     end
+
+    % --------------------------------------------------------------------
+    % General Use
+    % --------------------------------------------------------------------
+    methods(Access='public')
+
+        function Update(obj)
+            % UPDATE updates the visualization given new transformation
+            % information
+            %   obj.Update
+
+            % Update camera pose
+            if isempty(obj.H_c2o)
+                set(obj.hg_c2o,'Visible','off');
+            else
+                set(obj.hg_c2o,'Visible','on','Matrix',obj.H_c2o);
+            end
+
+            % Update robot configuration
+            if isempty(obj.q)
+                sim = obj.simUR;
+                sim.Home;
+            else
+                sim = obj.simUR;
+                sim.Joints = obj.q;
+            end
+        end
+
+    end
 end
 
 
