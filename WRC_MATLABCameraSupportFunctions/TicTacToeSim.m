@@ -49,27 +49,53 @@ classdef TicTacToeSim < matlab.mixin.SetGet % Handle
     % General properties
     % --------------------------------------------------------------------
     properties(GetAccess='public', SetAccess='public')
+        % H_ao2c - 2-element cell array containing rigid body transformations 
+        %          defining the pose of the visible board AprilTags relative
+        %          to the camera frame
+        %     H_ao2c{1} - pose of Tag ID 450 relative to the camera frame
+        %     H_ao2c{2} - pose of Tag ID 460 relative to the camera frame
+        %         * If a tag is not visible, H_ao2c{i} = []
         H_ao2c
+
+        % H_ab2c - 5-element cell array containing rigid body transformations 
+        %          defining the pose of the visible "blue/O piece" AprilTags 
+        %          relative to the camera frame
+        %     H_ab2c{1} - pose of Tag ID 451 relative to the camera frame
+        %     H_ab2c{2} - pose of Tag ID 452 relative to the camera frame
+        %         ...
+        %     H_ab2c{5} - pose of Tag ID 455 relative to the camera frame
+        %         * If a tag is not visible, H_ab2c{i} = []
         H_ab2c
+
+        % H_ar2c - 5-element cell array containing rigid body transformations 
+        %          defining the pose of the visible "red/X piece" AprilTags 
+        %          relative to the camera frame
+        %     H_ar2c{1} - pose of Tag ID 461 relative to the camera frame
+        %     H_ar2c{2} - pose of Tag ID 462 relative to the camera frame
+        %         ...
+        %     H_ar2c{5} - pose of Tag ID 465 relative to the camera frame
+        %         * If a tag is not visible, H_abrc{i} = []
         H_ar2c
-        hg_c2x % parent of the tic tac toe simulation. 
+
+        % hg_c2x - parent of the tic tac toe simulation.
+        hg_c2x  
     end
 
     properties(GetAccess='public', SetAccess='private')
-        % scalar hgtransform object defining the AprilTag "a450" frame 
-        % relative to a known parent frame (e.g., the camera frame).
+        % hg_a2c - scalar hgtransform object defining the AprilTag "a450"  
+        %          frame relative to a known parent frame (e.g., the camera
+        %          frame).
         hg_a2c 
         
-
+        % hg_ab2c - 1x5 hgtransform object defining the AprilTag "a451",  
+        %           "a452", "a453", "a454", and "a455" frames relative to a
+        %           known parent frame (e.g., the camera frame).
         hg_ab2c
-        % 1x5 hgtransform object defining the AprilTag "a451", "a451", 
-        % "a451", "a451", and "a455" frames 
-        % relative to a known parent frame (e.g. the camera frame).
-
+        
+        % hg_ar2c - 1x5 hgtransform object defining the AprilTag "a461",  
+        %           "a462", "a463", "a464", and "a465" frames relative to a
+        %           known parent frame (e.g., the camera frame).
         hg_ar2c
-        %ptc_ao
-        %ptc_ab
-        %ptc_ar
     end
     
     % --------------------------------------------------------------------
