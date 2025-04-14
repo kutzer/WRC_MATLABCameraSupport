@@ -12,7 +12,7 @@ classdef TicTacToeSim < matlab.mixin.SetGet % Handle
     %   delete  - Delete the object and all attributes
     %
     % TicTacToeSim Properties
-    % -Figure and Axes
+    % -Graphics Handles
     %   hg_c2x      - parent of the tic tac toe simulation. 
     %
     % -Transformations
