@@ -4,6 +4,27 @@ classdef UR3eTicTacToeSim < TicTacToeSim % Handle
     %
     %   obj = UR3eTicTacToeSim
     %
+    % UR3eTicTacToeSim Methods
+    %   UpdateUR  - Update visualization given pose information
+    %   get       - Query properties of the object
+    %   set       - Update properties of the object
+    %   delete    - Delete the object and all attributes
+    %
+    % TicTacToeSim Properties
+    % -Graphics Handles
+    %   hg_c2o - scalar hgtransform object defining the camera frame 
+    %            relative to the UR3e base frame.
+    %
+    % -Transformations
+    %   H_c2o - 4x4 array defining the camera pose relative to the UR3e
+    %           base frame
+    %   q     - 6x1 array defining the UR3e joint configuration.
+    %
+    % - Other Handles
+    %   simUR - UR simulation object.
+    %   
+    %   See also TicTacToeSim
+    %
     %   M. Kutzer, 10Apr2025, USNA
 
     % Update(s)
@@ -16,13 +37,13 @@ classdef UR3eTicTacToeSim < TicTacToeSim % Handle
         %         base frame
         H_c2o
 
-        % q - 6x1 array defining the UR3e joint configuration.
+        % q - 6x1 array defining the UR3e joint configuration
         q 
     end
 
     properties(GetAccess='public', SetAccess='private')
         % hg_c2o - scalar hgtransform object defining the camera frame 
-        %          relative to the UR3e base frame).
+        %          relative to the UR3e base frame.
         hg_c2o
 
         % simUR - UR simulation object.
@@ -46,7 +67,7 @@ classdef UR3eTicTacToeSim < TicTacToeSim % Handle
             %   M. Kutzer, 10Apr2025, USNA
 
             % Check input(s)
-            narginchk(0,4);
+            narginchk(0,0);
 
             % Initialize UR object
             simUR = URsim;
@@ -58,6 +79,9 @@ classdef UR3eTicTacToeSim < TicTacToeSim % Handle
             end
             axis(simUR.Axes,'Tight');
             
+            % Rename figure
+            set(simUR.Figure,'Name','UR3e Tic Tac Toe Simulation');
+
             % Initialize camera frame
             hg_c2o = hgtransform('Parent',simUR.hFrame0);
             
