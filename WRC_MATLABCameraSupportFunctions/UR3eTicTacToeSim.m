@@ -28,7 +28,8 @@ classdef UR3eTicTacToeSim < TicTacToeSim % Handle
     %   M. Kutzer, 10Apr2025, USNA
 
     % Update(s)
-
+    %   14Apr2025 - Updated documentation
+    
     % --------------------------------------------------------------------
     % General properties
     % --------------------------------------------------------------------
