@@ -52,7 +52,7 @@ function varargout = adjustCamera(cam,varargin)
 %       (6) Adjust focus as necessary
 %       (7) Click "Exit"
 %
-%   See also initCamera
+%   See also initCamera getCameraSettings
 %
 %   M. Kutzer, 31Mar2022, USNA
 
@@ -146,7 +146,7 @@ end
 
 fig = figure('Name',sprintf('%s Property Editor',device.DeviceName),...
     'MenuBar','none','NumberTitle','off',...
-    'Units','Pixels','Position',[0,0,wALL,hALL]*ratio);
+    'Units','Pixels','Position',[0,0,wALL,hALL]*ratio,'Tag','adjustCamera');
 centerfig(fig);
 
 prop_vals = {};
