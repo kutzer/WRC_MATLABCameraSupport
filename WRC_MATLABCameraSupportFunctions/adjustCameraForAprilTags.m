@@ -3,7 +3,8 @@ function varargout = adjustCameraForAprilTags(cam,tagFamily)
 %   [camSettings,DeviceName,DeviceFormat] = adjustCameraForAprilTags(cam,tagFamily)
 %
 %   Input(s)
-%       cam - video input object
+%             cam - video input object
+%       tagFamily - character array specifying AprilTag family
 %
 %   Output(s)
 %       camSettings - strutured array containing the last set of
@@ -20,6 +21,17 @@ function varargout = adjustCameraForAprilTags(cam,tagFamily)
 
 %% Check input(s)
 narginchk(2,2);
+switch lower(class(cam))
+    case 'videoinput'
+        % Input is a video input object
+        if ~isvalid(cam)
+            error('Video input object is not associated with any hardware, try reinitializing.');
+        end
+    otherwise
+        error('Input must be a valid video input object.');
+end
+
+% TODO - check tagFamily
 
 %% Close any existing adjustCamera GUIs
 figADJ = findobj('Type','Figure','Tag','adjustCamera');
