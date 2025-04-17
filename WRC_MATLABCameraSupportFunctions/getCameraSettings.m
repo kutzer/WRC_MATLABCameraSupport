@@ -39,7 +39,6 @@ DeviceFormat = cam.VideoFormat;
 %% Get source info
 src_obj = getselectedsource(cam);
 
-
 %% Get camera settings
 prop_struct = set(src_obj);
 prop_names = fieldnames(prop_struct);
