@@ -50,7 +50,7 @@ img = [];
 tag = [];
 
 while true
-    try
+    %try
         im = get(prv,'CData');
         if isempty(img)
             img = imshow(im,'Parent',axs);
@@ -77,12 +77,13 @@ while true
             if numel(tag) < i
                 % Highlight AprilTag(s) matching tagID in blue
                 tag(i).ptc = patch(axs,'Vertices',loc(:,:,i),'Faces',1:4,...
-                    'EdgeColor','b','FaceColor','b','FaceAlpha',0.9);
+                    'EdgeColor','b','FaceColor','b','FaceAlpha',0.8,...
+                    'LineWidth',2);
 
                 % Label AprilTag
                 tag(i).txt = text(axs,mean(loc(:,1,i)),mean(loc(:,2,i)),str,...
-                    'HorizontalAlignment','center','VerticalAlignment','bottom',...
-                    'Rotation',ang,'FontWeight','Bold','FontSize',10,'Color','w');
+                    'HorizontalAlignment','center','VerticalAlignment','middle',...
+                    'Rotation',ang,'FontWeight','Bold','FontSize',14,'Color','w');
 
             else
                 set(tag(i).ptc,'Vertices',loc(:,:,i),'Visible','on');
@@ -95,9 +96,9 @@ while true
         set(fig,'WindowState','maximized');
         figure(figADJ);
         drawnow
-    catch
-        break
-    end
+    %catch
+    %    break
+    %end
 
     % Check adjust camera GUI
     if ~ishandle(figADJ)
