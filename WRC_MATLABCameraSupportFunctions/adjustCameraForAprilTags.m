@@ -1,4 +1,4 @@
-function [camSettings,DeviceName,DeviceFormat] = adjustCameraForAprilTags(cam,tagFamily)
+function varargout = adjustCameraForAprilTags(cam,tagFamily)
 % ADJUSTCAMERAFORAPRILTAGS allows a user to use an
 %   [camSettings,DeviceName,DeviceFormat] = adjustCameraForAprilTags(cam,tagFamily)
 %
@@ -17,6 +17,9 @@ function [camSettings,DeviceName,DeviceFormat] = adjustCameraForAprilTags(cam,ta
 %   See also initCamera adjustCamera
 %
 %   M. Kutzer, 17Apr2025, USNA
+
+%% Check input(s)
+narginchk(2,2);
 
 %% Close any existing adjustCamera GUIs
 figADJ = findobj('Type','Figure','Tag','adjustCamera');
@@ -92,4 +95,16 @@ end
 delete(fig);
 delete(figADJ);
 
-[camSettings,DeviceName,DeviceFormat] = getCameraSettings(cam);
+if nargout > 0
+    [camSettings,DeviceName,DeviceFormat] = getCameraSettings(cam);
+
+    if nargout > 0
+        varargout{1} = camSettings;
+    end
+    if nargout > 1
+        varargout{2} = DeviceName;
+    end
+    if nargout > 2
+        varargout{3} = DeviceFormat;
+    end
+end
