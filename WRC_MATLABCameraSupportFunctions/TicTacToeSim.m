@@ -44,7 +44,8 @@ classdef TicTacToeSim < matlab.mixin.SetGet % Handle
     %   M. Kutzer, 10Apr2025, USNA
 
     % Update(s)
-
+    %   21Apr2025 - Error correction with H_ao2c
+    
     % --------------------------------------------------------------------
     % General properties
     % --------------------------------------------------------------------
@@ -249,7 +250,7 @@ classdef TicTacToeSim < matlab.mixin.SetGet % Handle
                 set(obj.hg_a2c,'Matrix',H_a2c);
             elseif ~isempty(obj.H_ao2c{2})
                 H_a2ao = Tx(-150); % H_{a_{450}}^{a_{460}}
-                H_a2c = obj.H_ao2c{1}*H_a2ao;
+                H_a2c = obj.H_ao2c{2}*H_a2ao;
                 set(obj.hg_a2c,'Matrix',H_a2c);
             end
 
