@@ -41,11 +41,12 @@ function varargout = WRC_MATLABCameraSupportVer
 %   27Mar2025 - Updated documentation
 %   14Apr2025 - Added TicTacToeSim and UR3eTicTacToeSim classes
 %   17Apr2025 - Updated to include adjustCameraForAprilTags
+%   21Apr2025 - Updated to fix TicTacToeSim H_ao2c error
 
 A.Name = 'WRC MATLAB Camera Support';
-A.Version = '1.2.8';
+A.Version = '1.2.9';
 A.Release = '(R2019b)';
-A.Date = '17-Apr-2025';
+A.Date = '21-Apr-2025';
 A.URLVer = 1;
 
 msg{1} = sprintf('MATLAB %s Version: %s %s',A.Name, A.Version, A.Release);
