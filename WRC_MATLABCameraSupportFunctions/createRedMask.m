@@ -19,11 +19,11 @@ channel1Max = 100.000;
 
 % Define thresholds for channel 2 based on histogram settings
 channel2Min = 5.000;
-channel2Max = 81.000;
+channel2Max = 100.00;
 
 % Define thresholds for channel 3 based on histogram settings
-channel3Min = -55.818;
-channel3Max = 64.256;
+channel3Min = 5.000;
+channel3Max = 100.00;
 
 % Create mask based on chosen histogram thresholds
 sliderBW = (I(:,:,1) >= channel1Min ) & (I(:,:,1) <= channel1Max) & ...
