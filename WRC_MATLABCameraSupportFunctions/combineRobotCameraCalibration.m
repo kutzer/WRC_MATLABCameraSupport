@@ -16,7 +16,7 @@ function pname = combineRobotCameraCalibration(pname01,pname02)
 
 %% Define image base name, folder name, and number of images
 imBaseNameOut = 'coCal';
-calFolderNameOut = 'CombineRobCamCal';
+calFolderNameOut = sprintf('CombineRobCamCal_%s',char(datetime,'yyyyMMdd_hhmmss'));
 fnameRobotInfoOut = 'URcoCalInfo.mat';
 
 if ~isfolder(calFolderNameOut)
@@ -69,3 +69,6 @@ nImages = iter;
 
 save(fullfile(calFolderNameOut,fnameRobotInfoOut),...
     'q','H_e2o','calFolderNameOut','imBaseNameOut','squareSize','cameraParams','fnameRobotInfoOut','nImages');
+
+%% Package output(s)
+pname = calFolderNameOut;
