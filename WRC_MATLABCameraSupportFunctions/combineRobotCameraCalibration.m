@@ -14,6 +14,17 @@ function pname = combineRobotCameraCalibration(pname01,pname02)
 %
 %   M. Kutzer, 02Dec2025, USNA
 
+%% Check input(s)
+narginchk(2,2);
+
+if ~isfolder(pname01)
+    error('The folder path specified for the first folder is invalid.');
+end
+
+if ~isfolder(pname02)
+    error('The folder path specified for the second folder is invalid.');
+end
+
 %% Define image base name, folder name, and number of images
 imBaseNameOut = 'coCal';
 calFolderNameOut = sprintf('CombineRobCamCal_%s',char(datetime,'yyyyMMdd_hhmmss'));
