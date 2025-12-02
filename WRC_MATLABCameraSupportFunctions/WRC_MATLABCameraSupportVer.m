@@ -45,9 +45,9 @@ function varargout = WRC_MATLABCameraSupportVer
 %   22May2025 - Updated to enable local install
 
 A.Name = 'WRC MATLAB Camera Support';
-A.Version = '1.3.0';
+A.Version = '1.3.1';
 A.Release = '(R2019b)';
-A.Date = '23-May-2025';
+A.Date = '02-Dec-2025';
 A.URLVer = 1;
 
 msg{1} = sprintf('MATLAB %s Version: %s %s',A.Name, A.Version, A.Release);
