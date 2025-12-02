@@ -25,14 +25,30 @@ function [H_o2c,H_c2o,H_e2f,H_f2e] = calibrateRobotCameraFromFolder(pname)
 %
 %   M. Kutzer, 02Dec2025, USNA
 
+%% Check input(s)
+narginchk(1,1);
+
+if ~isfolder(pname)
+    error('The specified folder path is invalid.');
+end
+
 %% Find images
 c = dir( fullfile(pname,sprintf('*.png')) );
 for i = 1:numel(c)
     fnames{i} = fullfile(pname,c(i).name);
 end
 
+% TODO - check file names
+
 %% Load data
-load( fullfile(pname,'URcoCalInfo.mat') );
+dataFile = 'URcoCalInfo.mat';
+try
+    load( fullfile(pname,dataFile) );
+catch
+    error('Data file "%s" does not exist in specified directory.',dataFile);
+end
+
+% TODO - check variables 
 
 if numel(squareSize) > 1
     if any( squareSize(1) ~= squareSize )
